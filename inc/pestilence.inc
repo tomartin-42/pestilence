@@ -29,6 +29,7 @@
 
 ; Para dirent (Regular file)
 %define DT_REG        8
+%define DT_DIR        4
 
 ; el st-mode de la fstat struct (144 bytes) indica el tipo de fichero y los permisos.
 ; Está a +24 bytes del inicio de la struct
@@ -80,10 +81,11 @@ struc	Elf64_Phdr
     .p_align		resq	1	; Segment alignment
 endstruc
 
-struc Famine
+struc Pestilence
+    .fd_proc            resq    1
     .fd_dir             resq    1
     .fd_file            resq    1
-    .dirent_struc       resb    1024
+    .dirent_struc       resb    4096
     .dir_name_pointer   resq    1
     .file_original_len  resd    1
     .file_final_len     resd    1
@@ -122,7 +124,7 @@ endstruc
     and %1, 0xfffffffffffff000
 %endmacro
 
-%define VAR(n) [(rbp - Famine_size) + n]
+%define VAR(n) [(rbp - Pestilence_size) + n]
 ; Esto es para poder acceder a los valores de la stack donde se va almacenar la struc faime
 ; |             |
 ; |             |
@@ -153,3 +155,19 @@ endstruc
     pop rsi
     pop rdx
 %endmacro
+
+; system V amd64 call convention
+
+; Volatiles
+; RAX
+; RCX
+; RDX
+; RSI
+; RDI
+; R8–R11
+
+; Preservar
+; RBX
+; RBP
+; R12–R15
+; RSP
