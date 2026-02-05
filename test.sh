@@ -1,9 +1,10 @@
 #!/bin/bash
 
-[[ ! -e ./famine ]] && { echo "Que tal si compilas amigo" && exit 1; }
-
-declare -a test_dirs=( /tmp/test{,2,3} )
+program_name="pestilence"
 trace="tomartin & carce-bo"
+declare -a test_dirs=( /tmp/test{,2,3} )
+
+[[ ! -e ./${program_name} ]] && { echo "Que tal si compilas amigo" && exit 1; }
 
 for dir in "${test_dirs[@]}"; do
 	if [[ ! -d $dir ]]; then
@@ -13,10 +14,10 @@ for dir in "${test_dirs[@]}"; do
 	fi
 done
 
-# Lanzamos 1 vez famine con /tmp/test poblado
+# Lanzamos 1 vez ${program_name} con /tmp/test poblado
 cp /usr/bin/cat /usr/bin/ls /tmp/test/
 
-./famine || { echo "Famine no ha retornado 0" && exit 1; }
+./${program_name} || { echo "${program_name} no ha retornado 0" && exit 1; }
 
 ! strings /tmp/test/ls | grep -q "${trace}"  && { echo "El paciente 0 no infecta" && exit 1; }
 ! strings /tmp/test/cat | grep -q "${trace}"  && { echo "El paciente 0 no itera correctamente todos los ficheros" && exit 1; }
