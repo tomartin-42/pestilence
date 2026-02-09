@@ -42,4 +42,6 @@ docker:
   	-v $(CURDIR):/app \
   	$(CONTAINER_NAME)
 
+brutal: all
+	
 re: fclean all
