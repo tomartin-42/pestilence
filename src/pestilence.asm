@@ -90,7 +90,7 @@ section .text
         jne .check_dir_in_proc
 
         ; comprobamos que el nombre del directorio se corresponde con un PID
-        call directory_name_isdigit
+        CALL directory_name_isdigit, 0x23
         cmp al, 0
 
         jne .check_dir_in_proc

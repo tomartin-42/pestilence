@@ -1,5 +1,8 @@
-#include <asm-generic/fcntl.h>
-#include <cstdio>
+#include <stdio.h>
+#include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 // Calculos
 // readelf -S pestilence
@@ -33,17 +36,26 @@
 // size = directory_name_isdigit.directory_name_isdigit_end - directory_name_isdigit
 //
 
-void xor_cipher(uint8_t *buf, size_t size, uint8_t *key) {
+void xor_cipher(uint8_t *buf, size_t size, uint8_t *key, size_t offset, int fd) {
+    
+    lseek(fd, offset, SEEK_SET);
+    read(fd, buf, size);   
+    
     for (size_t i = 0; i < size; i++) {
         buf[i] ^= key[i & 7];
     }
+
+    lseek(fd, offset, SEEK_SET);
+    write(fd, buf, size);
 }
 
 int main(void) {
-    uint8_t key[8] = "p3st1l3!"
+    uint8_t key[8] = "p3st1l3!";
     int fd = open("pestilence", O_RDWR);
-    
-    xor_cipher(buf, size, key);
+    uint8_t buf[1024];
+
+    // directory_name_isdigit
+    xor_cipher(buf, 0x23, key, 0x1002, fd);
 
     close(fd);
     return 0;
