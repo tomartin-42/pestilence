@@ -490,6 +490,7 @@ section .text
         xor rdi, rdi
         syscall
 
+    xor_pass        db      "p3st1l3!" ; 8
     forbidden_prog  db      "/vim",0 ; 4
     exe_string      db      "/exe",0 ; 5
     hello           db      "[+] hello",10,0 ;11
