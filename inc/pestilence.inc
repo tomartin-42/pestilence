@@ -166,16 +166,16 @@ endstruc
     push r8
     push r9
 
-    lea rax, [rel %1]         ; base función
+    lea r10, [rel %1]         ; base función
     lea rbx, [rel xor_pass]   ; key
     xor rcx, rcx              ; contador función
     xor rdx, rdx              ; índice key
 
 %%decrypt:
-    mov r8b, [rax + rcx]
+    mov r8b, [r10 + rcx]
     mov r9b, [rbx + rdx]
     xor r8b, r9b
-    mov [rax + rcx], r8b
+    mov [r10 + rcx], r8b
 
     inc rcx
     inc rdx
@@ -183,16 +183,32 @@ endstruc
     cmp rcx, %2
     jl %%decrypt
 
-    call rax                  ; llamada
+    pop r9
+    pop r8
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
 
-    xor rcx, rcx
-    xor rdx, rdx
+    call r10                  ; llamada
+    
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push r8
+    push r9
+
+    lea r10, [rel %1]         ; base función
+    lea rbx, [rel xor_pass]   ; key
+    xor rcx, rcx              ; contador función
+    xor rdx, rdx              ; índice key
 
 %%encrypt:
-    mov r8b, [rax + rcx]
+    mov r8b, [r10 + rcx]
     mov r9b, [rbx + rdx]
     xor r8b, r9b
-    mov [rax + rcx], r8b
+    mov [r10 + rcx], r8b
 
     inc rcx
     inc rdx
