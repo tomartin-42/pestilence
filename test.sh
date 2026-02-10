@@ -34,3 +34,19 @@ cp /usr/bin/cat /usr/bin/ls /tmp/test2/
 ! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado no infecta" && exit 1; }
 ! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado no itera correctamente todos los ficheros" && exit 1; }
 
+# Tercera iteracion del virus, comprobando que se infectan en /tmp/test y /tmp/test2
+mkdir -p /tmp/test4
+mv /tmp/test2/* /tmp/test4/
+
+cp /usr/bin/cat /usr/bin/ls /tmp/test2/
+cp /usr/bin/cat /usr/bin/ls /tmp/test/
+
+/tmp/test4/ls || { echo "El binario infectado de segunda generacion no ha retornado 0" && exit 1; }
+
+
+! strings /tmp/test/ls | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no infecta" && exit 1; }
+! strings /tmp/test/cat | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no itera correctamente todos los ficheros" && exit 1; }
+! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no infecta" && exit 1; }
+! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no itera correctamente todos los ficheros" && exit 1; }
+
+

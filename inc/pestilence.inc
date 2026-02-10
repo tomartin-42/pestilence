@@ -86,6 +86,7 @@ struc Pestilence
     .fd_proc            resq    1
     .fd_dir             resq    1
     .fd_file            resq    1
+    .fd_status          resq    1
     .dirent_buffer      resb    1024
     .dir_name_pointer   resq    1
     .file_original_len  resd    1
