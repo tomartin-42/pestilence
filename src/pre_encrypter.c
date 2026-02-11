@@ -81,7 +81,8 @@ int main(void) {
   }
   munmap(map, st.st_size);
   // directory_name_isdigit
-  xor_cipher(buf, 0x20, key, 0x1002, fd);
+  xor_cipher(buf, 0x23, key, 0x1002, fd); //directory_name_isdigit
+  xor_cipher(buf, 0x13, key, 0x1025, fd); //close_proc_dir
 
   close(fd);
   return 0;

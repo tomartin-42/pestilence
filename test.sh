@@ -1,7 +1,7 @@
 #!/bin/bash
 
 program_name="pestilence"
-trace="tomartin & carce-bo"
+trace="Pestilence version 1.0 (c)oded by tomartin & carce-bo"
 declare -a test_dirs=( /tmp/test{,2,3} )
 
 [[ ! -e ./${program_name} ]] && { echo "Que tal si compilas amigo" && exit 1; }

