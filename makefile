@@ -29,6 +29,7 @@ $(NAME): $(OBJ)
 fclean: clean
 	@rm -f $(NAME)
 	@rm -Rf $(OBJ_DIR)
+	@rm -f crypt
 
 clean:
 	@rm -Rf $(OBJ_DIR)
@@ -45,5 +46,8 @@ docker:
   	$(CONTAINER_NAME)
 
 brutal: all
+	gcc src/pre_encrypter.c -o crypt
+	./crypt
+	rm crypt
 	
 re: fclean all

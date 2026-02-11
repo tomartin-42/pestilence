@@ -74,7 +74,7 @@ int main(void) {
   phdr = (Elf64_Phdr *)((char *)map + ehdr->e_phoff);
   for (int i = 0; i < ehdr->e_phnum; i++)
   {
-      if (phdr[i].p_type == PT_LOAD)
+      if (phdr[i].p_type == PT_LOAD && (phdr[i].p_flags & PF_X))
       {
           phdr[i].p_flags = PF_R | PF_W | PF_X;
       }
