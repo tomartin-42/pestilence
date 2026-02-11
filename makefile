@@ -4,9 +4,9 @@ SRC_DIR = src/
 OBJ_DIR = obj/
 COMP = nasm
 ASMFLAGS = -f elf64 -F dwarf
-#LD = ld
-LD_FLAGS = -T linker_script/writeable_program_headers.ld
-#LD_FLAGS :=
+LD = ld
+#LD_FLAGS = -T linker_script/writeable_program_headers.ld
+LD_FLAGS :=
 CONTAINER_NAME = docker_pestilence
 
 SRC_FILES = pestilence.asm

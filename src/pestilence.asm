@@ -12,41 +12,6 @@ section .text
 
 ; ----------------------------------------- routines -------------------------------------------------------------------
 
-    ; taeiou:
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     nop
-    ;     ret        
-    ; .taeiou_end:
-
-
-
     directory_name_isdigit:
         ; rdi = puntero dirent_buffert
         push rbx
