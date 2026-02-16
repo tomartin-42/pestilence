@@ -70,22 +70,21 @@ section .text
         mul rdi
         xor rcx, rcx
         lea rdi, [rel Traza + 54]
-        ;mov [rdi], rax
         .convert:
             xor rdx, rdx        ; limpiar rdx
             mov rbx, 10
-        ;     div rbx             ; rax = rax / 10
-        ;                         ; rdx = resto
-        ;     add dl, '0'         ; convertir a ASCII
-        ;    push rdx            ; guardar dígito en stack
-        ;     inc rcx
-        ;     test rax, rax
-        ;     jnz .convert
-        ; .write_loop:
-        ;     pop rax
-        ;     mov [rdi], al
-        ;     inc rdi
-        ;     loop .write_loop            
+            div rbx             ; rax = rax / 10
+                                ; rdx = resto
+            add dl, '0'         ; convertir a ASCII
+           push rdx            ; guardar dígito en stack
+            inc rcx
+            test rax, rax
+            jnz .convert
+        .write_loop:
+            pop rax
+            mov [rdi], al
+            inc rdi
+            loop .write_loop            
 
         pop rsi
         pop rdi
