@@ -44,8 +44,10 @@ docker:
   	$(CONTAINER_NAME)
 
 brutal: all
-	gcc src/pre_encrypter.c -o crypt
-	./crypt
-	rm crypt
+	mkdir -p /tmp/preprocess; \
+    ./preprocess_asm.sh > /tmp/preprocess/_asm_encrypt_addresses; \
+    gcc src/pre_encrypter.c -o encryptor; \
+    ./encryptor /tmp/preprocess/_asm_encrypt_addresses; \
+    rm encryptor; rm -rf /tmp/preprocess/
 	
 re: fclean all

