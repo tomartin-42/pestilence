@@ -75,11 +75,15 @@ int main(int argc, char **argv) {
   map = mmap(NULL, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   ehdr = (Elf64_Ehdr *)map;
   phdr = (Elf64_Phdr *)((char *)map + ehdr->e_phoff);
-  for (int i = 0; i < ehdr->e_phnum; i++)
+  int i = 0;
+  size_t phdr_offset = 0;
+  for (; i < ehdr->e_phnum; i++)
   {
       if (phdr[i].p_type == PT_LOAD && (phdr[i].p_flags & PF_X))
       {
           phdr[i].p_flags = PF_R | PF_W | PF_X;
+          phdr_offset = phdr[i].p_offset;
+          break ;
       }
   }
   munmap(map, st.st_size);
@@ -91,7 +95,7 @@ int main(int argc, char **argv) {
   while ((read = getline(&line, &len, fp)) != -1) {
     int offset = atoi(line);
     int size = atoi(strstr(line,":")+1); 
-    xor_cipher(buf, (size_t)size, key, (size_t)offset, fd); //directory_name_isdigit
+    xor_cipher(buf, (size_t)size, key, phdr_offset + (size_t)offset, fd); //directory_name_isdigit
   }
 
   fclose(fp);
