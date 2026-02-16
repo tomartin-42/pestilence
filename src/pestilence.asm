@@ -69,11 +69,11 @@ section .text
         mov rdi, 0x1e9
         mul rdi
         xor rcx, rcx
-        mov rdi, [rel Traza + 54]
+        lea rdi, [rel Traza + 54]
         ;mov [rdi], rax
         .convert:
-        ;    xor rdx, rdx        ; limpiar rdx
-        ;    mov rbx, 10
+            xor rdx, rdx        ; limpiar rdx
+            mov rbx, 10
         ;     div rbx             ; rax = rax / 10
         ;                         ; rdx = resto
         ;     add dl, '0'         ; convertir a ASCII
