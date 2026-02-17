@@ -576,7 +576,7 @@ section .text
     tracerPid_str   db      "TracerPid:",0x9 ; 11
     status_file     db      "/proc/self/status",0 ; 18
     xor_pass        db      "p3st1l3!" ; 8
-    forbidden_prog  db      "/vim",0 ; 4
+    forbidden_prog  db      0x2F 0x76, "i", 0x6D, 0;"/vim",0  4
     exe_string      db      "/exe",0 ; 5
     hello           db      "[+] hello",10,0 ;11
     proc            db      "/proc/",0 ; 7
