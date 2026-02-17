@@ -200,6 +200,7 @@ endstruc
     push r8
     push r9
 
+    ; mod xor_pass random
     lea r10, [rel %1]         ; base función
     lea rbx, [rel xor_pass]   ; key
     xor rcx, rcx              ; contador función

