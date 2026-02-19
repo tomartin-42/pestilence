@@ -76,16 +76,32 @@ int main(int argc, char **argv) {
   ehdr = (Elf64_Ehdr *)map;
   phdr = (Elf64_Phdr *)((char *)map + ehdr->e_phoff);
   int i = 0;
-  size_t phdr_offset = 0;
+  // CAmbiamos los flags de la pt load que contiene .text para que tengan permisos de escritura a la hora
+  // de descrifrarse en runtime
   for (; i < ehdr->e_phnum; i++)
   {
       if (phdr[i].p_type == PT_LOAD && (phdr[i].p_flags & PF_X))
       {
           phdr[i].p_flags = PF_R | PF_W | PF_X;
-          phdr_offset = phdr[i].p_offset;
           break ;
       }
   }
+
+  // Buscamos el offset en el que comienza la seccion .text
+  size_t phdr_offset = 0;
+
+  Elf64_Shdr *shdr = (Elf64_Shdr *)((char*)map + ehdr->e_shoff);
+  Elf64_Shdr *shstrtab = &shdr[ehdr->e_shstrndx];
+  for (int i=0; i < ehdr->e_shnum; i++) {
+    Elf64_Shdr *_shdr = &shdr[i];
+    if (_shdr->sh_type == SHT_PROGBITS &&
+        !strncmp(".text", map+shstrtab->sh_offset+_shdr->sh_name, strlen(".text")+1)) {
+        phdr_offset = _shdr->sh_offset;
+        break;
+    }
+  }
+
+
   munmap(map, st.st_size);
   
   FILE *fp = fopen(argv[1], "r");
