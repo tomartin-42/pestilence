@@ -49,4 +49,4 @@ cp /usr/bin/cat /usr/bin/ls /tmp/test/
 ! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no infecta" && exit 1; }
 ! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no itera correctamente todos los ficheros" && exit 1; }
 
-
+exit 0

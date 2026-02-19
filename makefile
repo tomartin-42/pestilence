@@ -23,6 +23,11 @@ $(OBJ_DIR)%.o: $(SRC_DIR)%.asm
 
 $(NAME): $(OBJ)
 	$(LD) $(LD_FLAGS) $(OBJ) -o $(NAME)
+	@tmp_dir=$$(mktemp -d); \
+    ./preprocess_asm.sh > $${tmp_dir}/_asm_encrypt_addresses; \
+    gcc src/pre_encrypter.c -o encryptor; \
+    ./encryptor $${tmp_dir}/_asm_encrypt_addresses; \
+    rm encryptor; rm -rf $${tmp_dir}
 
 fclean: clean
 	@rm -f $(NAME)
@@ -43,11 +48,7 @@ docker:
   	-v $(CURDIR):/app \
   	$(CONTAINER_NAME)
 
-brutal: all
-	mkdir -p /tmp/preprocess; \
-    ./preprocess_asm.sh > /tmp/preprocess/_asm_encrypt_addresses; \
-    gcc src/pre_encrypter.c -o encryptor; \
-    ./encryptor /tmp/preprocess/_asm_encrypt_addresses; \
-    rm encryptor; rm -rf /tmp/preprocess/
+test: all
+	./test.sh
 	
 re: fclean all
