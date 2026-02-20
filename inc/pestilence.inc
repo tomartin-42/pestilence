@@ -167,13 +167,12 @@ endstruc
     push r8
     push r9
 
-    lea r10, [rel %1]         ; base función
-    mov rbx, 0x2537683570773774
+    lea r10, [rel %1]               ; base función
+    mov rbx, 0x2537683570773774     ; key    
     mov rax, 0x0404040404040404 
     xor rbx, rax
-    ; lea rbx, [rel xor_pass]   ; key
-    xor rcx, rcx              ; contador función
-    xor rdx, rdx              ; índice key
+    xor rcx, rcx                    ; contador función
+    xor rdx, rdx                    ; índice key
 
 %%decrypt:
     mov r8b, [r10 + rcx]
@@ -183,8 +182,6 @@ endstruc
 
     ror rbx, 8
     inc rcx
-    ; inc rdx
-    ; and rdx, 7
     cmp rcx, %2
     jl %%decrypt
 
@@ -205,13 +202,12 @@ endstruc
     push r9
 
     ; mod xor_pass random
-    lea r10, [rel %1]         ; base función
-    mov rbx, 0x2537683570773774
+    lea r10, [rel %1]               ; base función
+    mov rbx, 0x2537683570773774     ; key
     mov rax, 0x0404040404040404 
     xor rbx, rax
-    ; lea rbx, [rel xor_pass]   ; key
-    xor rcx, rcx              ; contador función
-    xor rdx, rdx              ; índice key
+    xor rcx, rcx                    ; contador función
+    xor rdx, rdx                    ; índice key
 
 %%encrypt:
     mov r8b, [r10 + rcx]

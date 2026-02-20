@@ -1,8 +1,8 @@
-FROM ubuntu:24.04
+FROM debian:sid-slim
 
 RUN apt update && \
     apt install -y \
-	gawk \
+	    gawk \
         make \
         bash \
         nasm \

