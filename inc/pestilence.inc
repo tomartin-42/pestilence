@@ -160,74 +160,74 @@ endstruc
 %endmacro
 
 %macro CALL 2
-    push rax
-    push rbx
-    push rcx
-    push rdx
-    push r8
-    push r9
+    ; push rax
+    ; push rbx
+    ; push rcx
+    ; push rdx
+    ; push r8
+    ; push r9
 
-    lea r10, [rel %1]               ; base función
-    mov rbx, 0x2537683570773774     ; key    
-    mov rax, 0x0404040404040404 
-    xor rbx, rax
-    xor rcx, rcx                    ; contador función
-    xor rdx, rdx                    ; índice key
+     lea r11, [rel %1]               ; base función
+;     mov rbx, 0x2537683570773774     ; key    
+;     mov rax, 0x0404040404040404 
+;     xor rbx, rax
+;     xor rcx, rcx                    ; contador función
+;     xor rdx, rdx                    ; índice key
 
-%%decrypt:
-    mov r8b, [r10 + rcx]
-    mov r9b, bl
-    xor r8b, r9b
-    mov [r10 + rcx], r8b
+; %%decrypt:
+;     mov r8b, [r11 + rcx]
+;     mov r9b, bl
+;     xor r8b, r9b
+;     mov [r11 + rcx], r8b
 
-    ror rbx, 8
-    inc rcx
-    cmp rcx, %2
-    jl %%decrypt
+;     ror rbx, 8
+;     inc rcx
+;     cmp rcx, %2
+;     jl %%decrypt
 
-    pop r9
-    pop r8
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
+    ; pop r9
+    ; pop r8
+    ; pop rdx
+    ; pop rcx
+    ; pop rbx
+    ; pop rax
 
-    call r10                  ; llamada
+    call r11                  ; llamada
     
-    push rax
-    push rbx
-    push rcx
-    push rdx
-    push r8
-    push r9
+    ; push rax
+    ; push rbx
+    ; push rcx
+    ; push rdx
+    ; push r8
+    ; push r9
 
-    ; mod xor_pass random
-    lea r10, [rel %1]               ; base función
-    mov rbx, 0x2537683570773774     ; key
-    mov rax, 0x0404040404040404 
-    xor rbx, rax
-    xor rcx, rcx                    ; contador función
-    xor rdx, rdx                    ; índice key
+;     ; mod xor_pass random
+;     lea r11, [rel %1]               ; base función
+;     mov rbx, 0x2537683570773774     ; key
+;     mov rax, 0x0404040404040404 
+;     xor rbx, rax
+;     xor rcx, rcx                    ; contador función
+;     xor rdx, rdx                    ; índice key
 
-%%encrypt:
-    mov r8b, [r10 + rcx]
-    mov r9b, bl
-    xor r8b, r9b
-    mov [r10 + rcx], r8b
+; %%encrypt:
+;     mov r8b, [r11 + rcx]
+;     mov r9b, bl
+;     xor r8b, r9b
+;     mov [r11 + rcx], r8b
 
-    ror rbx, 8
-    inc rcx
-    ; inc rdx
-    ; and rdx, 7
-    cmp rcx, %2
-    jl %%encrypt
+;     ror rbx, 8
+;     inc rcx
+;     ; inc rdx
+;     ; and rdx, 7
+;     cmp rcx, %2
+;     jl %%encrypt
 
-    pop r9
-    pop r8
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
+    ; pop r9
+    ; pop r8
+    ; pop rdx
+    ; pop rcx
+    ; pop rbx
+    ; pop rax
 
 %endmacro
 
@@ -246,3 +246,6 @@ endstruc
 ; RBP
 ; R12–R15
 ; RSP
+
+%define ONE one, 9
+%define TWO two, 9

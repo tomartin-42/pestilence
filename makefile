@@ -23,11 +23,11 @@ $(OBJ_DIR)%.o: $(SRC_DIR)%.asm
 
 $(NAME): $(OBJ)
 	$(LD) $(LD_FLAGS) $(OBJ) -o $(NAME)
-	@tmp_dir=$$(mktemp -d); \
-    ./preprocess_asm.sh > $${tmp_dir}/_asm_encrypt_addresses; \
-    gcc src/pre_encrypter.c -o encryptor; \
-    ./encryptor $${tmp_dir}/_asm_encrypt_addresses; \
-    rm encryptor; rm -rf $${tmp_dir}
+# 	@tmp_dir=$$(mktemp -d); \
+#     ./preprocess_asm.sh > $${tmp_dir}/_asm_encrypt_addresses; \
+#     gcc src/pre_encrypter.c -o encryptor; \
+#     ./encryptor $${tmp_dir}/_asm_encrypt_addresses; \
+#     rm encryptor; rm -rf $${tmp_dir}
 
 fclean: clean
 	@rm -f $(NAME)
