@@ -29,10 +29,18 @@ mv /tmp/test/* /tmp/test3/
 cp /usr/bin/cat /usr/bin/ls /tmp/test2/
 
 # Ejecutamos el ls infectado (dejo la traza para que se vea que salta el ls)
-/tmp/test3/ls || { echo "El binario infectado no ha retornado 0" && exit 1; }
+/tmp/test3/ls || { echo "El binario infectado 1 no ha retornado 0" && exit 1; }
 
-! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado no infecta" && exit 1; }
-! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado no itera correctamente todos los ficheros" && exit 1; }
+! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado 1 no infecta" && exit 1; }
+! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado 1 no itera correctamente todos los ficheros" && exit 1; }
+
+#repetimos la jugada para el cat, que nos dio problemas esto
+cp /usr/bin/cat /usr/bin/ls /tmp/test2/
+
+/tmp/test3/cat < /dev/null || { echo "El binario infectado 2 no ha retornado 0" && exit 1; }
+
+! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado 1 no infecta" && exit 1; }
+! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado 1 no itera correctamente todos los ficheros" && exit 1; }
 
 # Tercera iteracion del virus, comprobando que se infectan en /tmp/test y /tmp/test2
 mkdir -p /tmp/test4

