@@ -2,7 +2,7 @@
 
 program_name="pestilence"
 trace="Pestilence version 1.0 (c)oded by tomartin & carce-bo"
-declare -a test_dirs=( /tmp/test{,2,3} )
+declare -a test_dirs=( /tmp/test{,2,3,4,5} )
 
 [[ ! -e ./${program_name} ]] && { echo "Que tal si compilas amigo" && exit 1; }
 
@@ -43,7 +43,6 @@ cp /usr/bin/cat /usr/bin/ls /tmp/test2/
 ! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado 1 no itera correctamente todos los ficheros" && exit 1; }
 
 # Tercera iteracion del virus, comprobando que se infectan en /tmp/test y /tmp/test2
-mkdir -p /tmp/test4
 mv /tmp/test2/* /tmp/test4/
 
 cp /usr/bin/cat /usr/bin/ls /tmp/test2/
@@ -51,10 +50,22 @@ cp /usr/bin/cat /usr/bin/ls /tmp/test/
 
 /tmp/test4/ls || { echo "El binario infectado de segunda generacion no ha retornado 0" && exit 1; }
 
-
 ! strings /tmp/test/ls | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no infecta" && exit 1; }
 ! strings /tmp/test/cat | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no itera correctamente todos los ficheros" && exit 1; }
 ! strings /tmp/test2/ls | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no infecta" && exit 1; }
 ! strings /tmp/test2/cat | grep -q "${trace}"  && { echo "El binario infectado de segunda generacion no itera correctamente todos los ficheros" && exit 1; }
+
+( vim /tmp/_____ &>/dev/null; ) &
+
+cp /usr/bin/cat /usr/bin/ls /tmp/test/
+
+mv /tmp/test2/* /tmp/test5/
+
+/tmp/test5/ls || { echo "El binario infectado de tercera generacion no ha retornado 0" && exit 1; }
+
+strings /tmp/test/ls | grep -q "${trace}" && { echo "El binario infecta a pesar de tener corriendo el programa prohibido" && exit 1; }
+strings /tmp/test/cat | grep -q "${trace}" && { echo "El binario infecta a pesar de tener corriendo el programa prohibido" && exit 1; }
+
+pkill -SIGKILL -f "vim /tmp/_____"
 
 exit 0
